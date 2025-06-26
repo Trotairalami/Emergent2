@@ -891,6 +891,66 @@ export const HeroSection = ({ language, currency, theme, onFlightResults }) => {
                 {searchError}
               </div>
             )}
+
+            {/* Demo Results Button for Testing */}
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={() => {
+                  // Demo flight data for testing the new UI
+                  const demoFlights = [
+                    {
+                      id: "demo_1",
+                      owner: { name: "British Airways", logo_symbol_url: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/BA.svg" },
+                      total_amount: "221.78",
+                      total_currency: "GBP",
+                      slices: [{
+                        duration: "PT7H58M",
+                        segments: [{
+                          departing_at: "2025-08-20T14:42:00",
+                          arriving_at: "2025-08-20T17:40:00",
+                          origin: { iata_code: "LHR", city_name: "London", name: "Heathrow Airport" },
+                          destination: { iata_code: "JFK", city_name: "New York", name: "John F. Kennedy Airport" },
+                          marketing_carrier: { iata_code: "BA" },
+                          marketing_carrier_flight_number: "117",
+                          passengers: [{ 
+                            cabin_class_marketing_name: "Economy",
+                            baggages: [{ quantity: 1, type: "checked" }, { quantity: 1, type: "carry_on" }]
+                          }]
+                        }]
+                      }]
+                    },
+                    {
+                      id: "demo_2", 
+                      owner: { name: "American Airlines", logo_symbol_url: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/AA.svg" },
+                      total_amount: "221.16",
+                      total_currency: "GBP",
+                      slices: [{
+                        duration: "PT7H58M",
+                        segments: [{
+                          departing_at: "2025-08-20T14:42:00",
+                          arriving_at: "2025-08-20T17:40:00",
+                          origin: { iata_code: "LHR", city_name: "London", name: "Heathrow Airport" },
+                          destination: { iata_code: "JFK", city_name: "New York", name: "John F. Kennedy Airport" },
+                          marketing_carrier: { iata_code: "AA" },
+                          marketing_carrier_flight_number: "4",
+                          passengers: [{ 
+                            cabin_class_marketing_name: "Economy",
+                            baggages: [{ quantity: 1, type: "checked" }, { quantity: 1, type: "carry_on" }]
+                          }]
+                        }]
+                      }]
+                    }
+                  ];
+                  onFlightResults(demoFlights);
+                  setTimeout(() => {
+                    document.getElementById('flight-results')?.scrollIntoView({ behavior: 'smooth' });
+                  }, 100);
+                }}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                View Demo Results
+              </button>
+            </div>
           </div>
         </div>
       </div>
