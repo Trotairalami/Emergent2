@@ -791,23 +791,19 @@ export const HeroSection = ({ language, currency, theme, onFlightResults }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
               <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.from}</label>
-                <input
-                  type="text"
-                  placeholder={t.anywhere}
+                <AirportAutocomplete
                   value={searchData.origin}
-                  onChange={(e) => setSearchData({...searchData, origin: e.target.value})}
-                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
+                  onChange={(value) => setSearchData({...searchData, origin: value})}
+                  placeholder={t.anywhere}
                 />
               </div>
               
               <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.to}</label>
-                <input
-                  type="text"
-                  placeholder={t.anywhere}
+                <AirportAutocomplete
                   value={searchData.destination}
-                  onChange={(e) => setSearchData({...searchData, destination: e.target.value})}
-                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
+                  onChange={(value) => setSearchData({...searchData, destination: value})}
+                  placeholder={t.anywhere}
                 />
               </div>
               
