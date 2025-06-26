@@ -1404,16 +1404,8 @@ export const Footer = ({ language, theme }) => {
   const t = translations[language];
 
   return (
-    <footer className={`${theme === 'summer' ? 'bg-gradient-to-r from-amber-900 to-orange-900' : 'bg-gradient-to-r from-emerald-900 to-teal-900'} text-white relative overflow-hidden`}>
-      {/* Footer airplane motifs */}
-      <div className="absolute top-4 right-10">
-        <TrotairPlane size={30} theme={theme} opacity={0.1} rotation={-20} />
-      </div>
-      <div className="absolute bottom-4 left-10">
-        <PlaneTrail theme={theme} direction="right" className="opacity-20" />
-      </div>
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 relative z-10">
+    <footer className={`${theme === 'summer' ? 'bg-gradient-to-r from-amber-900 to-orange-900' : 'bg-gradient-to-r from-emerald-900 to-teal-900'} text-white`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="text-xl md:text-2xl font-bold mb-3 md:mb-4 flex items-center space-x-2">
