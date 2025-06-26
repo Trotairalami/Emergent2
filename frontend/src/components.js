@@ -1323,8 +1323,22 @@ export const PaymentSection = ({ language, theme }) => {
   ];
 
   return (
-    <section className="py-12 md:py-16 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-12 md:py-16 bg-gray-50 relative overflow-hidden">
+      {/* Flying airplanes with trails */}
+      <div className="absolute top-16 right-16 transform rotate-12">
+        <PlaneTrail theme={theme} direction="right" className="opacity-50" />
+      </div>
+      <div className="absolute bottom-32 left-16 transform -rotate-45">
+        <FloatingPlane theme={theme} size={35} delay={800} />
+      </div>
+      <div className="absolute top-1/2 right-1/3 transform rotate-60">
+        <TrotairPlane size={20} theme={theme} opacity={0.06} rotation={30} />
+      </div>
+      <div className="absolute top-1/4 left-1/3">
+        <PlaneTrail theme={theme} direction="left" className="opacity-30" />
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
             {t.title}
