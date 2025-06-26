@@ -5,8 +5,8 @@ import { loadStripe } from '@stripe/stripe-js';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Initialize Stripe (use test key)
-const stripePromise = loadStripe('pk_test_51OaEbqJqGQgJsNhCcYlTgRKpNNPnbWlvZwJdnqI8MNAjyKrUBn9FoVyVyxdTYQQTLgqDjJ2TgEVqQY9TbBmzr5C400kgGMDJBE');
+// Initialize Stripe (use new test key)
+const stripePromise = loadStripe('pk_test_51ReIzTCO0J8T4Na1uBGqSJW1qyWpPrEybsoZCxY4DNrPeBE8KUb3xAZ3a5auT7JM9PQwDjgxNJY6pJ1IpY8x9kkX00LHgO2GUE');
 
 // Trotair Airplane SVG Component for Brand Identity
 export const TrotairPlane = ({ className = "", size = 40, theme = "summer", opacity = 1, rotation = 0 }) => {
