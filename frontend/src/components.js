@@ -8,9 +8,10 @@ const API = `${BACKEND_URL}/api`;
 // Initialize Stripe (use test key)
 const stripePromise = loadStripe('pk_test_51OaEbqJqGQgJsNhCcYlTgRKpNNPnbWlvZwJdnqI8MNAjyKrUBn9FoVyVyxdTYQQTLgqDjJ2TgEVqQY9TbBmzr5C400kgGMDJBE');
 
-// Trotair Moroccan Star SVG Component
+// Trotair Moroccan Star SVG Component - Based on actual logo
 export const TrotairStar = ({ className = "", size = 40, theme = "summer", opacity = 1 }) => {
   const starColor = theme === 'summer' ? '#F59E0B' : '#10B981'; // Amber for summer, Emerald for winter
+  const accentColor = theme === 'summer' ? '#FCD34D' : '#34D399'; // Lighter amber/emerald
   
   return (
     <svg 
@@ -20,42 +21,73 @@ export const TrotairStar = ({ className = "", size = 40, theme = "summer", opaci
       className={className}
       style={{ opacity }}
     >
-      {/* Moroccan-inspired geometric star */}
       <defs>
         <linearGradient id={`starGradient-${theme}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor={starColor} stopOpacity="1" />
+          <stop offset="0%" stopColor={accentColor} stopOpacity="1" />
+          <stop offset="50%" stopColor={starColor} stopOpacity="1" />
           <stop offset="100%" stopColor={starColor} stopOpacity="0.8" />
+        </linearGradient>
+        <linearGradient id={`innerGradient-${theme}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={starColor} stopOpacity="0.8" />
+          <stop offset="100%" stopColor={starColor} stopOpacity="0.6" />
         </linearGradient>
       </defs>
       
-      {/* Outer star points */}
+      {/* Outer 8-pointed star */}
       <path
-        d="M50 5 L55 25 L75 20 L65 40 L85 50 L65 60 L75 80 L55 75 L50 95 L45 75 L25 80 L35 60 L15 50 L35 40 L25 20 L45 25 Z"
+        d="M50 8 L56 28 L76 28 L62 42 L68 62 L50 50 L32 62 L38 42 L24 28 L44 28 Z M50 8 L44 28 L24 28 L38 42 L32 62 L50 50 L68 62 L62 42 L76 28 L56 28 Z"
         fill={`url(#starGradient-${theme})`}
+        stroke={starColor}
+        strokeWidth="0.5"
+      />
+      
+      {/* Outer star border enhancement */}
+      <path
+        d="M50 12 L55 30 L73 30 L61 41 L66 59 L50 48 L34 59 L39 41 L27 30 L45 30 Z"
+        fill="none"
+        stroke={accentColor}
+        strokeWidth="1"
+        opacity="0.7"
+      />
+      
+      {/* Inner geometric star pattern */}
+      <path
+        d="M50 25 L55 35 L65 35 L58 45 L63 55 L50 48 L37 55 L42 45 L35 35 L45 35 Z"
+        fill={`url(#innerGradient-${theme})`}
         stroke={starColor}
         strokeWidth="1"
       />
       
-      {/* Inner geometric pattern */}
+      {/* Internal cross pattern */}
       <path
-        d="M50 20 L60 35 L75 35 L65 50 L75 65 L60 65 L50 80 L40 65 L25 65 L35 50 L25 35 L40 35 Z"
-        fill="white"
-        fillOpacity="0.3"
+        d="M50 30 L50 45 M42 37.5 L58 37.5 M46 33 L54 42 M46 42 L54 33"
+        stroke={accentColor}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        opacity="0.8"
       />
       
-      {/* Center circle */}
+      {/* Center decorative element */}
       <circle
         cx="50"
-        cy="50"
-        r="8"
-        fill={starColor}
+        cy="37.5"
+        r="3"
+        fill={accentColor}
+        stroke={starColor}
+        strokeWidth="0.5"
       />
       
-      {/* Small decorative elements */}
-      <circle cx="50" cy="30" r="2" fill="white" fillOpacity="0.6" />
-      <circle cx="50" cy="70" r="2" fill="white" fillOpacity="0.6" />
-      <circle cx="30" cy="50" r="2" fill="white" fillOpacity="0.6" />
-      <circle cx="70" cy="50" r="2" fill="white" fillOpacity="0.6" />
+      {/* Small decorative dots */}
+      <circle cx="50" cy="20" r="1.5" fill={accentColor} opacity="0.9" />
+      <circle cx="50" cy="55" r="1.5" fill={accentColor} opacity="0.9" />
+      <circle cx="35" cy="37.5" r="1.5" fill={accentColor} opacity="0.9" />
+      <circle cx="65" cy="37.5" r="1.5" fill={accentColor} opacity="0.9" />
+      
+      {/* Corner accent points */}
+      <circle cx="42" cy="30" r="1" fill={accentColor} opacity="0.7" />
+      <circle cx="58" cy="30" r="1" fill={accentColor} opacity="0.7" />
+      <circle cx="42" cy="45" r="1" fill={accentColor} opacity="0.7" />
+      <circle cx="58" cy="45" r="1" fill={accentColor} opacity="0.7" />
     </svg>
   );
 };
