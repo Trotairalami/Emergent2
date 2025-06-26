@@ -1,67 +1,84 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { loadStripe } from '@stripe/stripe-js';
 
-// Header Component with Language and Currency Switchers
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
+
+// Initialize Stripe (use test key)
+const stripePromise = loadStripe('pk_test_51OaEbqJqGQgJsNhCcYlTgRKpNNPnbWlvZwJdnqI8MNAjyKrUBn9FoVyVyxdTYQQTLgqDjJ2TgEVqQY9TbBmzr5C400kgGMDJBE');
+
+// Mobile-first Header Component with Language and Currency Switchers
 export const Header = ({ language, setLanguage, currency, setCurrency, theme, setTheme }) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const translations = {
     en: {
       flights: 'Flights',
       hotels: 'Hotels',
       cars: 'Cars',
       login: 'Sign in',
-      signup: 'Create account'
+      signup: 'Create account',
+      menu: 'Menu'
     },
     fr: {
       flights: 'Vols',
       hotels: 'Hôtels',
       cars: 'Voitures',
       login: 'Se connecter',
-      signup: 'Créer un compte'
+      signup: 'Créer un compte',
+      menu: 'Menu'
     },
     ar: {
       flights: 'الطيران',
       hotels: 'الفنادق',
       cars: 'السيارات',
       login: 'تسجيل الدخول',
-      signup: 'إنشاء حساب'
+      signup: 'إنشاء حساب',
+      menu: 'القائمة'
     }
   };
 
   const t = translations[language];
 
   return (
-    <header className={`${theme === 'summer' ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-emerald-500 to-teal-500'} shadow-lg`}>
+    <header className={`${theme === 'summer' ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-emerald-500 to-teal-500'} shadow-lg sticky top-0 z-50`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-4">
+        <div className="flex justify-between items-center py-3 md:py-4">
+          {/* Logo */}
           <div className="flex items-center">
-            <div className={`text-2xl font-bold text-white mr-8`}>
-              <span className="bg-white bg-opacity-20 px-4 py-2 rounded-lg">
+            <div className={`text-xl md:text-2xl font-bold text-white`}>
+              <span className="bg-white bg-opacity-20 px-3 md:px-4 py-2 rounded-lg">
                 ✈️ Trotair
               </span>
             </div>
-            <nav className="hidden md:flex space-x-8">
-              <a href="#" className="text-white hover:text-gray-200 font-medium transition-colors">
-                {t.flights}
-              </a>
-              <a href="#" className="text-white hover:text-gray-200 font-medium transition-colors">
-                {t.hotels}
-              </a>
-              <a href="#" className="text-white hover:text-gray-200 font-medium transition-colors">
-                {t.cars}
-              </a>
-            </nav>
           </div>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex space-x-8">
+            <a href="#flights" className="text-white hover:text-gray-200 font-medium transition-colors">
+              {t.flights}
+            </a>
+            <a href="#hotels" className="text-white hover:text-gray-200 font-medium transition-colors">
+              {t.hotels}
+            </a>
+            <a href="#cars" className="text-white hover:text-gray-200 font-medium transition-colors">
+              {t.cars}
+            </a>
+          </nav>
           
-          <div className="flex items-center space-x-4">
+          {/* Controls */}
+          <div className="flex items-center space-x-2 md:space-x-4">
             {/* Language Switcher */}
             <div className="relative">
               <select 
                 value={language} 
                 onChange={(e) => setLanguage(e.target.value)}
-                className="bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+                className="bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-md px-2 md:px-3 py-1 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
               >
-                <option value="en" className="text-gray-800">English</option>
-                <option value="fr" className="text-gray-800">Français</option>
-                <option value="ar" className="text-gray-800">العربية</option>
+                <option value="en" className="text-gray-800">EN</option>
+                <option value="fr" className="text-gray-800">FR</option>
+                <option value="ar" className="text-gray-800">AR</option>
               </select>
             </div>
             
@@ -70,7 +87,7 @@ export const Header = ({ language, setLanguage, currency, setCurrency, theme, se
               <select 
                 value={currency} 
                 onChange={(e) => setCurrency(e.target.value)}
-                className="bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+                className="bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-md px-2 md:px-3 py-1 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
               >
                 <option value="MAD" className="text-gray-800">MAD</option>
                 <option value="EUR" className="text-gray-800">EUR</option>
@@ -81,36 +98,74 @@ export const Header = ({ language, setLanguage, currency, setCurrency, theme, se
             {/* Theme Switcher */}
             <button
               onClick={() => setTheme(theme === 'summer' ? 'winter' : 'summer')}
-              className="bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-md px-3 py-1 text-sm hover:bg-opacity-30 transition-all focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+              className="bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-md px-2 md:px-3 py-1 text-xs md:text-sm hover:bg-opacity-30 transition-all focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
             >
               {theme === 'summer' ? '❄️' : '☀️'}
             </button>
             
-            <div className="hidden md:flex items-center space-x-3">
-              <button className="text-white hover:text-gray-200 font-medium transition-colors">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-md px-2 py-1 text-sm hover:bg-opacity-30 transition-all focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+            >
+              {t.menu}
+            </button>
+            
+            {/* Desktop Auth Buttons */}
+            <div className="hidden lg:flex items-center space-x-3">
+              <button className="text-white hover:text-gray-200 font-medium transition-colors text-sm">
                 {t.login}
               </button>
-              <button className="bg-white text-gray-800 px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors">
+              <button className="bg-white text-gray-800 px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors text-sm">
                 {t.signup}
               </button>
             </div>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden pb-4 border-t border-white border-opacity-20 mt-4 pt-4">
+            <nav className="flex flex-col space-y-2">
+              <a href="#flights" className="text-white hover:text-gray-200 font-medium transition-colors py-2">
+                {t.flights}
+              </a>
+              <a href="#hotels" className="text-white hover:text-gray-200 font-medium transition-colors py-2">
+                {t.hotels}
+              </a>
+              <a href="#cars" className="text-white hover:text-gray-200 font-medium transition-colors py-2">
+                {t.cars}
+              </a>
+              <div className="flex flex-col space-y-2 pt-4 border-t border-white border-opacity-20">
+                <button className="text-white hover:text-gray-200 font-medium transition-colors text-left py-2">
+                  {t.login}
+                </button>
+                <button className="bg-white text-gray-800 px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors text-left">
+                  {t.signup}
+                </button>
+              </div>
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );
 };
 
-// Hero Section with Flight Search
-export const HeroSection = ({ language, currency, theme }) => {
+// Enhanced Hero Section with Real Flight Search
+export const HeroSection = ({ language, currency, theme, onFlightResults }) => {
   const [searchData, setSearchData] = useState({
-    from: '',
-    to: '',
-    departure: '',
-    return: '',
+    origin: '',
+    destination: '',
+    departure_date: '',
+    return_date: '',
     passengers: 1,
+    cabin_class: 'economy',
     tripType: 'roundtrip'
   });
+
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
 
   const translations = {
     en: {
@@ -121,11 +176,17 @@ export const HeroSection = ({ language, currency, theme }) => {
       departure: 'Departure',
       return: 'Return',
       passengers: 'Passengers',
+      cabinClass: 'Cabin Class',
       search: 'Search Flights',
+      searching: 'Searching...',
       roundtrip: 'Round Trip',
       oneway: 'One Way',
-      anywhere: 'Anywhere',
-      anytime: 'Anytime'
+      anywhere: 'Airport Code (e.g., JFK)',
+      anytime: 'Select Date',
+      economy: 'Economy',
+      premium: 'Premium Economy',
+      business: 'Business',
+      first: 'First Class'
     },
     fr: {
       title: 'Trouvez Votre Vol Parfait',
@@ -135,11 +196,17 @@ export const HeroSection = ({ language, currency, theme }) => {
       departure: 'Départ',
       return: 'Retour',
       passengers: 'Passagers',
+      cabinClass: 'Classe',
       search: 'Rechercher des Vols',
+      searching: 'Recherche...',
       roundtrip: 'Aller-Retour',
       oneway: 'Aller Simple',
-      anywhere: 'N\'importe où',
-      anytime: 'N\'importe quand'
+      anywhere: 'Code Aéroport (ex: CDG)',
+      anytime: 'Choisir une date',
+      economy: 'Économique',
+      premium: 'Premium Économique',
+      business: 'Affaires',
+      first: 'Première Classe'
     },
     ar: {
       title: 'اعثر على رحلتك المثالية',
@@ -149,20 +216,63 @@ export const HeroSection = ({ language, currency, theme }) => {
       departure: 'المغادرة',
       return: 'العودة',
       passengers: 'المسافرون',
+      cabinClass: 'الدرجة',
       search: 'البحث عن الرحلات',
+      searching: 'يبحث...',
       roundtrip: 'ذهاب وإياب',
       oneway: 'ذهاب فقط',
-      anywhere: 'أي مكان',
-      anytime: 'أي وقت'
+      anywhere: 'كود المطار (مثال: CAI)',
+      anytime: 'اختر التاريخ',
+      economy: 'اقتصادية',
+      premium: 'اقتصادية فاخرة',
+      business: 'درجة رجال الأعمال',
+      first: 'الدرجة الأولى'
     }
   };
 
   const t = translations[language];
 
-  const handleSearch = () => {
-    console.log('Searching flights with:', searchData);
-    // This would typically send the search data to an API
+  const handleSearch = async () => {
+    if (!searchData.origin || !searchData.destination || !searchData.departure_date) {
+      setSearchError('Please fill in all required fields');
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchError('');
+    
+    try {
+      const searchRequest = {
+        origin: searchData.origin.toUpperCase(),
+        destination: searchData.destination.toUpperCase(),
+        departure_date: searchData.departure_date,
+        return_date: searchData.tripType === 'roundtrip' ? searchData.return_date : null,
+        passengers: searchData.passengers,
+        cabin_class: searchData.cabin_class
+      };
+
+      const response = await axios.post(`${API}/flights/search`, searchRequest);
+      
+      if (response.data && response.data.data && response.data.data.offers) {
+        onFlightResults(response.data.data.offers);
+        // Scroll to results
+        setTimeout(() => {
+          document.getElementById('flight-results')?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } else {
+        setSearchError('No flights found for your search criteria');
+      }
+    } catch (error) {
+      console.error('Flight search error:', error);
+      setSearchError(error.response?.data?.detail || 'Failed to search flights. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
   };
+
+  // Set minimum dates
+  const today = new Date().toISOString().split('T')[0];
+  const minReturnDate = searchData.departure_date || today;
 
   return (
     <section 
@@ -171,23 +281,23 @@ export const HeroSection = ({ language, currency, theme }) => {
         backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1605130284535-11dd9eedc58a')`
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight">
             {t.title}
           </h1>
-          <p className="text-xl md:text-2xl text-gray-200 mb-12 font-light">
+          <p className="text-lg sm:text-xl md:text-2xl text-gray-200 mb-8 md:mb-12 font-light">
             {t.subtitle}
           </p>
           
           {/* Flight Search Form */}
-          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 max-w-4xl mx-auto">
+          <div className="bg-white rounded-xl md:rounded-2xl shadow-2xl p-4 md:p-6 lg:p-8 max-w-4xl mx-auto">
             {/* Trip Type Toggle */}
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-center mb-4 md:mb-6">
               <div className={`${theme === 'summer' ? 'bg-amber-100' : 'bg-emerald-100'} rounded-lg p-1 flex`}>
                 <button
                   onClick={() => setSearchData({...searchData, tripType: 'roundtrip'})}
-                  className={`px-6 py-2 rounded-md font-medium transition-all ${
+                  className={`px-4 md:px-6 py-2 rounded-md font-medium transition-all text-sm md:text-base ${
                     searchData.tripType === 'roundtrip'
                       ? theme === 'summer' 
                         ? 'bg-amber-500 text-white shadow-md' 
@@ -199,7 +309,7 @@ export const HeroSection = ({ language, currency, theme }) => {
                 </button>
                 <button
                   onClick={() => setSearchData({...searchData, tripType: 'oneway'})}
-                  className={`px-6 py-2 rounded-md font-medium transition-all ${
+                  className={`px-4 md:px-6 py-2 rounded-md font-medium transition-all text-sm md:text-base ${
                     searchData.tripType === 'oneway'
                       ? theme === 'summer' 
                         ? 'bg-amber-500 text-white shadow-md' 
@@ -213,15 +323,15 @@ export const HeroSection = ({ language, currency, theme }) => {
             </div>
 
             {/* Search Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
               <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.from}</label>
                 <input
                   type="text"
                   placeholder={t.anywhere}
-                  value={searchData.from}
-                  onChange={(e) => setSearchData({...searchData, from: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                  value={searchData.origin}
+                  onChange={(e) => setSearchData({...searchData, origin: e.target.value})}
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                 />
               </div>
               
@@ -230,9 +340,9 @@ export const HeroSection = ({ language, currency, theme }) => {
                 <input
                   type="text"
                   placeholder={t.anywhere}
-                  value={searchData.to}
-                  onChange={(e) => setSearchData({...searchData, to: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                  value={searchData.destination}
+                  onChange={(e) => setSearchData({...searchData, destination: e.target.value})}
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                 />
               </div>
               
@@ -240,9 +350,10 @@ export const HeroSection = ({ language, currency, theme }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.departure}</label>
                 <input
                   type="date"
-                  value={searchData.departure}
-                  onChange={(e) => setSearchData({...searchData, departure: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                  min={today}
+                  value={searchData.departure_date}
+                  onChange={(e) => setSearchData({...searchData, departure_date: e.target.value})}
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                 />
               </div>
               
@@ -251,35 +362,59 @@ export const HeroSection = ({ language, currency, theme }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.return}</label>
                   <input
                     type="date"
-                    value={searchData.return}
-                    onChange={(e) => setSearchData({...searchData, return: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                    min={minReturnDate}
+                    value={searchData.return_date}
+                    onChange={(e) => setSearchData({...searchData, return_date: e.target.value})}
+                    className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                   />
                 </div>
               )}
             </div>
 
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
               <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.passengers}</label>
                 <select
                   value={searchData.passengers}
                   onChange={(e) => setSearchData({...searchData, passengers: parseInt(e.target.value)})}
-                  className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                 >
                   {[1,2,3,4,5,6,7,8].map(num => (
                     <option key={num} value={num}>{num} {num === 1 ? 'passenger' : 'passengers'}</option>
                   ))}
                 </select>
               </div>
+
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.cabinClass}</label>
+                <select
+                  value={searchData.cabin_class}
+                  onChange={(e) => setSearchData({...searchData, cabin_class: e.target.value})}
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
+                >
+                  <option value="economy">{t.economy}</option>
+                  <option value="premium_economy">{t.premium}</option>
+                  <option value="business">{t.business}</option>
+                  <option value="first">{t.first}</option>
+                </select>
+              </div>
               
-              <button
-                onClick={handleSearch}
-                className={`${theme === 'summer' ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600' : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600'} text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200`}
-              >
-                {t.search}
-              </button>
+              <div className="flex items-end">
+                <button
+                  onClick={handleSearch}
+                  disabled={isSearching}
+                  className={`w-full ${theme === 'summer' ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600' : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600'} text-white px-6 md:px-8 py-2 md:py-3 rounded-lg font-semibold text-sm md:text-base shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
+                >
+                  {isSearching ? t.searching : t.search}
+                </button>
+              </div>
             </div>
+
+            {searchError && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {searchError}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -287,7 +422,330 @@ export const HeroSection = ({ language, currency, theme }) => {
   );
 };
 
-// Featured Destinations Section
+// Flight Results Component
+export const FlightResults = ({ flights, language, currency, theme, onBookFlight }) => {
+  const [selectedFlight, setSelectedFlight] = useState(null);
+
+  const translations = {
+    en: {
+      results: 'Flight Results',
+      noResults: 'No flights found. Please try different search criteria.',
+      selectFlight: 'Select Flight',
+      bookNow: 'Book Now',
+      duration: 'Duration',
+      stops: 'stops',
+      stop: 'stop',
+      direct: 'Direct',
+      departure: 'Departure',
+      arrival: 'Arrival',
+      airline: 'Airline',
+      price: 'Price',
+      perPerson: 'per person'
+    },
+    fr: {
+      results: 'Résultats de Vol',
+      noResults: 'Aucun vol trouvé. Veuillez essayer d\'autres critères de recherche.',
+      selectFlight: 'Sélectionner le Vol',
+      bookNow: 'Réserver Maintenant',
+      duration: 'Durée',
+      stops: 'escales',
+      stop: 'escale',
+      direct: 'Direct',
+      departure: 'Départ',
+      arrival: 'Arrivée',
+      airline: 'Compagnie',
+      price: 'Prix',
+      perPerson: 'par personne'
+    },
+    ar: {
+      results: 'نتائج الرحلات',
+      noResults: 'لم يتم العثور على رحلات. يرجى تجربة معايير بحث مختلفة.',
+      selectFlight: 'اختر الرحلة',
+      bookNow: 'احجز الآن',
+      duration: 'المدة',
+      stops: 'توقفات',
+      stop: 'توقف',
+      direct: 'مباشر',
+      departure: 'المغادرة',
+      arrival: 'الوصول',
+      airline: 'شركة الطيران',
+      price: 'السعر',
+      perPerson: 'للفرد'
+    }
+  };
+
+  const t = translations[language];
+
+  const formatDuration = (duration) => {
+    const match = duration.match(/PT(\d+H)?(\d+M)?/);
+    const hours = match[1] ? match[1].replace('H', 'h ') : '';
+    const minutes = match[2] ? match[2].replace('M', 'm') : '';
+    return hours + minutes;
+  };
+
+  const formatTime = (datetime) => {
+    return new Date(datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatDate = (datetime) => {
+    return new Date(datetime).toLocaleDateString();
+  };
+
+  const getStopsText = (segments) => {
+    const stops = segments.length - 1;
+    if (stops === 0) return t.direct;
+    if (stops === 1) return `1 ${t.stop}`;
+    return `${stops} ${t.stops}`;
+  };
+
+  if (!flights || flights.length === 0) {
+    return (
+      <section id="flight-results" className="py-8 md:py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{t.results}</h2>
+            <p className="text-gray-600">{t.noResults}</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section id="flight-results" className="py-8 md:py-16 bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8 text-center">
+          {t.results}
+        </h2>
+        
+        <div className="space-y-4 md:space-y-6">
+          {flights.map((flight, index) => (
+            <div key={flight.id || index} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+              <div className="p-4 md:p-6">
+                {/* Flight Header */}
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
+                  <div className="mb-2 md:mb-0">
+                    <h3 className="text-lg md:text-xl font-bold text-gray-900">{flight.owner?.name}</h3>
+                    <p className="text-sm text-gray-600">{t.airline}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-2xl md:text-3xl font-bold ${theme === 'summer' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                      {currency} {parseFloat(flight.total_amount).toFixed(2)}
+                    </div>
+                    <p className="text-xs md:text-sm text-gray-600">{t.perPerson}</p>
+                  </div>
+                </div>
+
+                {/* Flight Slices */}
+                <div className="space-y-4">
+                  {flight.slices?.map((slice, sliceIndex) => (
+                    <div key={sliceIndex} className="border border-gray-200 rounded-lg p-3 md:p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                        {/* Departure */}
+                        <div className="text-center md:text-left">
+                          <div className="text-lg md:text-xl font-bold">
+                            {formatTime(slice.segments[0]?.departing_at)}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {slice.segments[0]?.origin?.iata_code}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {formatDate(slice.segments[0]?.departing_at)}
+                          </div>
+                        </div>
+
+                        {/* Flight Info */}
+                        <div className="text-center">
+                          <div className="text-sm text-gray-600">
+                            {formatDuration(slice.duration)}
+                          </div>
+                          <div className="flex items-center justify-center my-2">
+                            <div className="h-0.5 bg-gray-300 flex-1"></div>
+                            <div className="mx-2 text-xs text-gray-500">
+                              ✈️
+                            </div>
+                            <div className="h-0.5 bg-gray-300 flex-1"></div>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {getStopsText(slice.segments)}
+                          </div>
+                        </div>
+
+                        {/* Arrival */}
+                        <div className="text-center md:text-right">
+                          <div className="text-lg md:text-xl font-bold">
+                            {formatTime(slice.segments[slice.segments.length - 1]?.arriving_at)}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {slice.segments[slice.segments.length - 1]?.destination?.iata_code}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {formatDate(slice.segments[slice.segments.length - 1]?.arriving_at)}
+                          </div>
+                        </div>
+
+                        {/* Action Button */}
+                        <div className="text-center md:text-right">
+                          <button
+                            onClick={() => onBookFlight(flight)}
+                            className={`w-full md:w-auto ${theme === 'summer' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'} text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium transition-colors text-sm md:text-base`}
+                          >
+                            {t.bookNow}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Payment Modal Component
+export const PaymentModal = ({ flight, language, currency, theme, isOpen, onClose, onPaymentSuccess }) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+
+  const translations = {
+    en: {
+      bookingDetails: 'Booking Details',
+      flight: 'Flight',
+      total: 'Total',
+      payNow: 'Pay Now',
+      processing: 'Processing...',
+      close: 'Close',
+      securePayment: 'Secure Payment with Stripe'
+    },
+    fr: {
+      bookingDetails: 'Détails de la Réservation',
+      flight: 'Vol',
+      total: 'Total',
+      payNow: 'Payer Maintenant',
+      processing: 'Traitement...',
+      close: 'Fermer',
+      securePayment: 'Paiement Sécurisé avec Stripe'
+    },
+    ar: {
+      bookingDetails: 'تفاصيل الحجز',
+      flight: 'الرحلة',
+      total: 'المجموع',
+      payNow: 'ادفع الآن',
+      processing: 'معالجة...',
+      close: 'إغلاق',
+      securePayment: 'دفع آمن مع Stripe'
+    }
+  };
+
+  const t = translations[language];
+
+  const handlePayment = async () => {
+    if (!flight) return;
+
+    setIsProcessing(true);
+    setPaymentError('');
+
+    try {
+      const paymentRequest = {
+        flight_offer_id: flight.id,
+        amount: parseFloat(flight.total_amount),
+        currency: flight.total_currency.toLowerCase(),
+        origin_url: window.location.origin,
+        metadata: {
+          flight_owner: flight.owner?.name || 'Unknown',
+          passenger_count: flight.passengers?.length || 1
+        }
+      };
+
+      const response = await axios.post(`${API}/payments/v1/checkout/session`, paymentRequest);
+      
+      if (response.data?.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = response.data.url;
+      } else {
+        throw new Error('No payment URL received');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      setPaymentError(error.response?.data?.detail || 'Failed to process payment. Please try again.');
+      setIsProcessing(false);
+    }
+  };
+
+  if (!isOpen || !flight) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-screen overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">{t.bookingDetails}</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 text-xl"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="space-y-4 mb-6">
+            <div className="border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold mb-2">{t.flight}</h3>
+              <p className="text-sm text-gray-600">{flight.owner?.name}</p>
+              {flight.slices?.map((slice, index) => (
+                <div key={index} className="text-sm text-gray-600 mt-1">
+                  {slice.segments[0]?.origin?.iata_code} → {slice.segments[slice.segments.length - 1]?.destination?.iata_code}
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-semibold">{t.total}</span>
+                <span className={`text-2xl font-bold ${theme === 'summer' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                  {currency} {parseFloat(flight.total_amount).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {paymentError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
+              {paymentError}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <button
+              onClick={handlePayment}
+              disabled={isProcessing}
+              className={`w-full ${theme === 'summer' ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600' : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600'} text-white py-3 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isProcessing ? t.processing : t.payNow}
+            </button>
+
+            <button
+              onClick={onClose}
+              className="w-full bg-gray-200 text-gray-800 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+            >
+              {t.close}
+            </button>
+
+            <p className="text-xs text-gray-500 text-center">
+              🔒 {t.securePayment}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Mobile-optimized Featured Destinations Section
 export const FeaturedDestinations = ({ language, currency, theme }) => {
   const translations = {
     en: {
@@ -336,41 +794,42 @@ export const FeaturedDestinations = ({ language, currency, theme }) => {
   const currencySymbol = currency === 'MAD' ? 'MAD' : currency === 'EUR' ? '€' : '$';
 
   return (
-    <section className="py-16 bg-gray-50">
+    <section className="py-12 md:py-16 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
             {t.title}
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
             {t.subtitle}
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {destinations.map((destination, index) => (
-            <div key={index} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group">
-              <div className="relative h-64 overflow-hidden">
+            <div key={index} className="bg-white rounded-xl md:rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group">
+              <div className="relative h-48 md:h-64 overflow-hidden">
                 <img
                   src={destination.image}
                   alt={destination.city}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  loading="lazy"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute bottom-4 left-4 text-white">
-                  <h3 className="text-xl font-bold">{destination.city}</h3>
-                  <p className="text-gray-200">{destination.name}</p>
+                  <h3 className="text-lg md:text-xl font-bold">{destination.city}</h3>
+                  <p className="text-sm md:text-base text-gray-200">{destination.name}</p>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-4 md:p-6">
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-gray-600 text-sm">{t.from}</p>
-                    <p className={`text-2xl font-bold ${theme === 'summer' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                    <p className={`text-xl md:text-2xl font-bold ${theme === 'summer' ? 'text-amber-600' : 'text-emerald-600'}`}>
                       {currencySymbol}{destination.price}
                     </p>
                   </div>
-                  <button className={`${theme === 'summer' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'} text-white px-6 py-2 rounded-lg font-medium transition-colors`}>
+                  <button className={`${theme === 'summer' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'} text-white px-4 md:px-6 py-2 rounded-lg font-medium transition-colors text-sm md:text-base`}>
                     {t.viewDeals}
                   </button>
                 </div>
@@ -383,7 +842,7 @@ export const FeaturedDestinations = ({ language, currency, theme }) => {
   );
 };
 
-// About Trotair Section
+// Mobile-optimized About Section
 export const AboutSection = ({ language, theme }) => {
   const translations = {
     en: {
@@ -430,44 +889,46 @@ export const AboutSection = ({ language, theme }) => {
   const t = translations[language];
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-12 md:py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
+          <div className="order-2 lg:order-1">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 md:mb-6">
               {t.title}
             </h2>
-            <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+            <p className="text-base md:text-lg text-gray-600 mb-6 md:mb-8 leading-relaxed">
               {t.description}
             </p>
             
-            <div className="space-y-4 mb-8">
+            <div className="space-y-3 md:space-y-4 mb-6 md:mb-8">
               {t.features.map((feature, index) => (
                 <div key={index} className="flex items-center space-x-3">
                   <div className={`w-2 h-2 rounded-full ${theme === 'summer' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                  <span className="text-gray-700">{feature}</span>
+                  <span className="text-sm md:text-base text-gray-700">{feature}</span>
                 </div>
               ))}
             </div>
           </div>
           
-          <div className="relative">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="relative order-1 lg:order-2">
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
               <img
                 src="https://images.unsplash.com/photo-1566286633173-3da9c7825746"
                 alt="Happy travelers"
-                className="rounded-2xl shadow-lg"
+                className="rounded-xl md:rounded-2xl shadow-lg w-full h-32 md:h-48 object-cover"
+                loading="lazy"
               />
               <img
                 src="https://images.unsplash.com/photo-1656058039604-8346721fda70"
                 alt="Adventure travelers"
-                className="rounded-2xl shadow-lg mt-8"
+                className="rounded-xl md:rounded-2xl shadow-lg mt-4 md:mt-8 w-full h-32 md:h-48 object-cover"
+                loading="lazy"
               />
             </div>
             
-            <div className={`absolute -bottom-6 -left-6 ${theme === 'summer' ? 'bg-amber-500' : 'bg-emerald-500'} text-white p-6 rounded-2xl shadow-xl`}>
-              <h3 className="font-bold text-lg mb-2">{t.support}</h3>
-              <p className="text-sm opacity-90">{t.supportDesc}</p>
+            <div className={`absolute -bottom-4 md:-bottom-6 -left-4 md:-left-6 ${theme === 'summer' ? 'bg-amber-500' : 'bg-emerald-500'} text-white p-4 md:p-6 rounded-xl md:rounded-2xl shadow-xl max-w-xs`}>
+              <h3 className="font-bold text-sm md:text-lg mb-1 md:mb-2">{t.support}</h3>
+              <p className="text-xs md:text-sm opacity-90">{t.supportDesc}</p>
             </div>
           </div>
         </div>
@@ -476,7 +937,7 @@ export const AboutSection = ({ language, theme }) => {
   );
 };
 
-// Payment Options Section
+// Mobile-optimized Payment Section
 export const PaymentSection = ({ language, theme }) => {
   const translations = {
     en: {
@@ -516,41 +977,41 @@ export const PaymentSection = ({ language, theme }) => {
   ];
 
   return (
-    <section className="py-16 bg-gray-50">
+    <section className="py-12 md:py-16 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
             {t.title}
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
             {t.subtitle}
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-          <div className="bg-white rounded-2xl shadow-lg p-8">
-            <h3 className={`text-xl font-bold mb-6 ${theme === 'summer' ? 'text-amber-600' : 'text-emerald-600'}`}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-8 md:mb-12">
+          <div className="bg-white rounded-xl md:rounded-2xl shadow-lg p-6 md:p-8">
+            <h3 className={`text-lg md:text-xl font-bold mb-4 md:mb-6 ${theme === 'summer' ? 'text-amber-600' : 'text-emerald-600'}`}>
               {t.international}
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               {paymentMethods.slice(0, 4).map((method, index) => (
-                <div key={index} className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
-                  <span className="text-2xl">{method.logo}</span>
-                  <span className="font-medium text-gray-700">{method.name}</span>
+                <div key={index} className="flex items-center space-x-3 p-3 md:p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+                  <span className="text-xl md:text-2xl">{method.logo}</span>
+                  <span className="font-medium text-gray-700 text-sm md:text-base">{method.name}</span>
                 </div>
               ))}
             </div>
           </div>
           
-          <div className="bg-white rounded-2xl shadow-lg p-8">
-            <h3 className={`text-xl font-bold mb-6 ${theme === 'summer' ? 'text-amber-600' : 'text-emerald-600'}`}>
+          <div className="bg-white rounded-xl md:rounded-2xl shadow-lg p-6 md:p-8">
+            <h3 className={`text-lg md:text-xl font-bold mb-4 md:mb-6 ${theme === 'summer' ? 'text-amber-600' : 'text-emerald-600'}`}>
               {t.moroccan}
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               {paymentMethods.slice(4).map((method, index) => (
-                <div key={index} className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
-                  <span className="text-2xl">{method.logo}</span>
-                  <span className="font-medium text-gray-700">{method.name}</span>
+                <div key={index} className="flex items-center space-x-3 p-3 md:p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+                  <span className="text-xl md:text-2xl">{method.logo}</span>
+                  <span className="font-medium text-gray-700 text-sm md:text-base">{method.name}</span>
                 </div>
               ))}
             </div>
@@ -559,8 +1020,8 @@ export const PaymentSection = ({ language, theme }) => {
         
         <div className="text-center">
           <div className="flex items-center justify-center space-x-2 text-gray-600">
-            <span className="text-2xl">🔒</span>
-            <span>{t.security}</span>
+            <span className="text-xl md:text-2xl">🔒</span>
+            <span className="text-sm md:text-base">{t.security}</span>
           </div>
         </div>
       </div>
@@ -568,7 +1029,7 @@ export const PaymentSection = ({ language, theme }) => {
   );
 };
 
-// Footer Component
+// Mobile-optimized Footer Component
 export const Footer = ({ language, theme }) => {
   const translations = {
     en: {
@@ -631,29 +1092,29 @@ export const Footer = ({ language, theme }) => {
 
   return (
     <footer className={`${theme === 'summer' ? 'bg-gradient-to-r from-amber-900 to-orange-900' : 'bg-gradient-to-r from-emerald-900 to-teal-900'} text-white`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="col-span-1 md:col-span-1">
-            <div className="text-2xl font-bold mb-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          <div className="sm:col-span-2 lg:col-span-1">
+            <div className="text-xl md:text-2xl font-bold mb-3 md:mb-4">
               ✈️ Trotair
             </div>
-            <p className="text-gray-300 mb-6">
+            <p className="text-gray-300 mb-4 md:mb-6 text-sm md:text-base">
               {t.tagline}
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">
+              <a href="#" className="text-gray-300 hover:text-white transition-colors text-lg md:text-xl">
                 <span className="sr-only">Facebook</span>
                 📘
               </a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">
+              <a href="#" className="text-gray-300 hover:text-white transition-colors text-lg md:text-xl">
                 <span className="sr-only">Twitter</span>
                 🐦
               </a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">
+              <a href="#" className="text-gray-300 hover:text-white transition-colors text-lg md:text-xl">
                 <span className="sr-only">Instagram</span>
                 📷
               </a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">
+              <a href="#" className="text-gray-300 hover:text-white transition-colors text-lg md:text-xl">
                 <span className="sr-only">LinkedIn</span>
                 💼
               </a>
@@ -661,40 +1122,154 @@ export const Footer = ({ language, theme }) => {
           </div>
           
           <div>
-            <h3 className="font-semibold mb-4">{t.company}</h3>
+            <h3 className="font-semibold mb-3 md:mb-4 text-sm md:text-base">{t.company}</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">{t.about}</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">{t.careers}</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">{t.press}</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">{t.blog}</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors text-sm md:text-base">{t.about}</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors text-sm md:text-base">{t.careers}</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors text-sm md:text-base">{t.press}</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors text-sm md:text-base">{t.blog}</a></li>
             </ul>
           </div>
           
           <div>
-            <h3 className="font-semibold mb-4">{t.support}</h3>
+            <h3 className="font-semibold mb-3 md:mb-4 text-sm md:text-base">{t.support}</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">{t.contact}</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">{t.help}</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">{t.faq}</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors text-sm md:text-base">{t.contact}</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors text-sm md:text-base">{t.help}</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors text-sm md:text-base">{t.faq}</a></li>
             </ul>
           </div>
           
           <div>
-            <h3 className="font-semibold mb-4">{t.legal}</h3>
+            <h3 className="font-semibold mb-3 md:mb-4 text-sm md:text-base">{t.legal}</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">{t.terms}</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">{t.privacy}</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">{t.cookies}</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors text-sm md:text-base">{t.terms}</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors text-sm md:text-base">{t.privacy}</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors text-sm md:text-base">{t.cookies}</a></li>
             </ul>
           </div>
         </div>
         
-        <div className="border-t border-gray-600 mt-8 pt-8 text-center">
-          <p className="text-gray-300">
+        <div className="border-t border-gray-600 mt-6 md:mt-8 pt-6 md:pt-8 text-center">
+          <p className="text-gray-300 text-xs md:text-sm">
             © 2025 Trotair. {t.rights}
           </p>
         </div>
       </div>
     </footer>
+  );
+};
+
+// Payment Success/Failure Components
+export const PaymentStatus = ({ language, theme }) => {
+  const [paymentStatus, setPaymentStatus] = useState('checking');
+  const [sessionId, setSessionId] = useState('');
+
+  const translations = {
+    en: {
+      checking: 'Checking payment status...',
+      success: 'Payment Successful!',
+      failed: 'Payment Failed',
+      successMessage: 'Thank you for your booking. You will receive a confirmation email shortly.',
+      failedMessage: 'There was an issue processing your payment. Please try again.',
+      backToHome: 'Back to Home'
+    },
+    fr: {
+      checking: 'Vérification du statut de paiement...',
+      success: 'Paiement Réussi!',
+      failed: 'Paiement Échoué',
+      successMessage: 'Merci pour votre réservation. Vous recevrez un email de confirmation sous peu.',
+      failedMessage: 'Il y a eu un problème lors du traitement de votre paiement. Veuillez réessayer.',
+      backToHome: 'Retour à l\'Accueil'
+    },
+    ar: {
+      checking: 'التحقق من حالة الدفع...',
+      success: 'تم الدفع بنجاح!',
+      failed: 'فشل الدفع',
+      successMessage: 'شكراً لك على حجزك. ستتلقى بريد إلكتروني للتأكيد قريباً.',
+      failedMessage: 'حدثت مشكلة في معالجة دفعتك. يرجى المحاولة مرة أخرى.',
+      backToHome: 'العودة إلى الصفحة الرئيسية'
+    }
+  };
+
+  const t = translations[language];
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const session_id = urlParams.get('session_id');
+    
+    if (session_id) {
+      setSessionId(session_id);
+      checkPaymentStatus(session_id);
+    } else {
+      setPaymentStatus('failed');
+    }
+  }, []);
+
+  const checkPaymentStatus = async (sessionId, attempts = 0) => {
+    const maxAttempts = 5;
+    
+    if (attempts >= maxAttempts) {
+      setPaymentStatus('failed');
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${API}/payments/v1/checkout/status/${sessionId}`);
+      
+      if (response.data.payment_status === 'paid') {
+        setPaymentStatus('success');
+      } else if (response.data.status === 'expired') {
+        setPaymentStatus('failed');
+      } else {
+        // Still pending, check again after 2 seconds
+        setTimeout(() => checkPaymentStatus(sessionId, attempts + 1), 2000);
+      }
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      if (attempts < maxAttempts - 1) {
+        setTimeout(() => checkPaymentStatus(sessionId, attempts + 1), 2000);
+      } else {
+        setPaymentStatus('failed');
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-6 md:p-8 text-center">
+        {paymentStatus === 'checking' && (
+          <>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">{t.checking}</h2>
+          </>
+        )}
+        
+        {paymentStatus === 'success' && (
+          <>
+            <div className="text-green-500 text-5xl mb-4">✅</div>
+            <h2 className={`text-2xl font-bold mb-4 ${theme === 'summer' ? 'text-amber-600' : 'text-emerald-600'}`}>
+              {t.success}
+            </h2>
+            <p className="text-gray-600 mb-6">{t.successMessage}</p>
+          </>
+        )}
+        
+        {paymentStatus === 'failed' && (
+          <>
+            <div className="text-red-500 text-5xl mb-4">❌</div>
+            <h2 className="text-2xl font-bold text-red-600 mb-4">{t.failed}</h2>
+            <p className="text-gray-600 mb-6">{t.failedMessage}</p>
+          </>
+        )}
+        
+        <button
+          onClick={() => window.location.href = '/'}
+          className={`w-full ${theme === 'summer' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'} text-white py-3 rounded-lg font-semibold transition-colors`}
+        >
+          {t.backToHome}
+        </button>
+      </div>
+    </div>
   );
 };
