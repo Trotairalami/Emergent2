@@ -1202,19 +1202,8 @@ export const AboutSection = ({ language, theme }) => {
   const t = translations[language];
 
   return (
-    <section className="py-12 md:py-16 bg-white relative overflow-hidden">
-      {/* Subtle airplane motifs */}
-      <div className="absolute top-20 left-20 transform -rotate-12">
-        <PlaneTrail theme={theme} direction="right" className="opacity-40" />
-      </div>
-      <div className="absolute bottom-20 right-20 transform rotate-30">
-        <TrotairPlane size={40} theme={theme} opacity={0.08} rotation={-30} />
-      </div>
-      <div className="absolute top-1/3 right-1/3">
-        <FloatingPlane theme={theme} size={25} delay={500} />
-      </div>
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <section className="py-12 md:py-16 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
           <div className="order-2 lg:order-1">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 md:mb-6">
