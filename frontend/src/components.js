@@ -1408,9 +1408,8 @@ export const Footer = ({ language, theme }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           <div className="sm:col-span-2 lg:col-span-1">
-            <div className="text-xl md:text-2xl font-bold mb-3 md:mb-4 flex items-center space-x-2">
-              <AnimatedTrotairPlane size={24} theme={theme} />
-              <span>Trotair</span>
+            <div className="text-xl md:text-2xl font-bold mb-3 md:mb-4">
+              ✈️ Trotair
             </div>
             <p className="text-gray-300 mb-4 md:mb-6 text-sm md:text-base">
               {t.tagline}
