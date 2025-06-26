@@ -1000,7 +1000,12 @@ export const PaymentModal = ({ flight, language, currency, theme, isOpen, onClos
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-screen overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-screen overflow-y-auto relative">
+        {/* Floating airplane decoration */}
+        <div className="absolute top-4 right-16">
+          <TrotairPlane size={20} theme={theme} opacity={0.2} rotation={-15} />
+        </div>
+        
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl md:text-2xl font-bold text-gray-900">{t.bookingDetails}</h2>
