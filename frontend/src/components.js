@@ -8,6 +8,186 @@ const API = `${BACKEND_URL}/api`;
 // Initialize Stripe (use test key)
 const stripePromise = loadStripe('pk_test_51OaEbqJqGQgJsNhCcYlTgRKpNNPnbWlvZwJdnqI8MNAjyKrUBn9FoVyVyxdTYQQTLgqDjJ2TgEVqQY9TbBmzr5C400kgGMDJBE');
 
+// Trotair Airplane SVG Component for Brand Identity
+export const TrotairPlane = ({ className = "", size = 40, theme = "summer", opacity = 1, rotation = 0 }) => {
+  const planeColor = theme === 'summer' ? '#F59E0B' : '#10B981'; // Amber for summer, Emerald for winter
+  const accentColor = theme === 'summer' ? '#FCD34D' : '#34D399'; // Lighter amber/emerald
+  
+  return (
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 100 100" 
+      className={className}
+      style={{ opacity, transform: `rotate(${rotation}deg)` }}
+    >
+      <defs>
+        <linearGradient id={`planeGradient-${theme}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={accentColor} stopOpacity="1" />
+          <stop offset="50%" stopColor={planeColor} stopOpacity="1" />
+          <stop offset="100%" stopColor={planeColor} stopOpacity="0.8" />
+        </linearGradient>
+        <linearGradient id={`wingGradient-${theme}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={planeColor} stopOpacity="0.9" />
+          <stop offset="100%" stopColor={planeColor} stopOpacity="0.6" />
+        </linearGradient>
+      </defs>
+      
+      {/* Main fuselage */}
+      <ellipse
+        cx="50"
+        cy="50"
+        rx="35"
+        ry="8"
+        fill={`url(#planeGradient-${theme})`}
+        stroke={planeColor}
+        strokeWidth="1"
+      />
+      
+      {/* Nose cone */}
+      <ellipse
+        cx="20"
+        cy="50"
+        rx="8"
+        ry="6"
+        fill={accentColor}
+        stroke={planeColor}
+        strokeWidth="0.5"
+      />
+      
+      {/* Main wings */}
+      <ellipse
+        cx="45"
+        cy="35"
+        rx="20"
+        ry="4"
+        fill={`url(#wingGradient-${theme})`}
+        stroke={planeColor}
+        strokeWidth="0.5"
+      />
+      <ellipse
+        cx="45"
+        cy="65"
+        rx="20"
+        ry="4"
+        fill={`url(#wingGradient-${theme})`}
+        stroke={planeColor}
+        strokeWidth="0.5"
+      />
+      
+      {/* Tail wing */}
+      <ellipse
+        cx="75"
+        cy="50"
+        rx="8"
+        ry="12"
+        fill={`url(#wingGradient-${theme})`}
+        stroke={planeColor}
+        strokeWidth="0.5"
+      />
+      
+      {/* Windows */}
+      <circle cx="35" cy="50" r="2" fill="white" opacity="0.9" />
+      <circle cx="42" cy="50" r="2" fill="white" opacity="0.9" />
+      <circle cx="49" cy="50" r="2" fill="white" opacity="0.9" />
+      <circle cx="56" cy="50" r="2" fill="white" opacity="0.9" />
+      
+      {/* Engine details */}
+      <circle cx="40" cy="35" r="3" fill={accentColor} opacity="0.8" />
+      <circle cx="40" cy="65" r="3" fill={accentColor} opacity="0.8" />
+      
+      {/* Propeller/engine glow */}
+      <circle cx="15" cy="50" r="4" fill={accentColor} opacity="0.6" />
+      <circle cx="15" cy="50" r="2" fill="white" opacity="0.8" />
+    </svg>
+  );
+};
+
+// Animated Trotair Plane Component
+export const AnimatedTrotairPlane = ({ className = "", size = 40, theme = "summer", opacity = 1, animate = true, direction = "right" }) => {
+  const animationClass = animate ? (direction === "right" ? "animate-bounce" : "animate-pulse") : "";
+  const rotation = direction === "left" ? 180 : 0;
+  
+  return (
+    <div className={`${animationClass} ${className}`}>
+      <TrotairPlane size={size} theme={theme} opacity={opacity} rotation={rotation} />
+    </div>
+  );
+};
+
+// Airplane Trail Effect Component
+export const PlaneTrail = ({ theme, className = "", direction = "right" }) => {
+  const trailColor = theme === 'summer' ? '#FCD34D' : '#34D399';
+  
+  return (
+    <div className={`flex items-center ${direction === 'left' ? 'flex-row-reverse' : ''} ${className}`}>
+      <TrotairPlane size={24} theme={theme} opacity={0.8} rotation={direction === 'left' ? 180 : 0} />
+      {/* Trail dots */}
+      <div className={`flex items-center space-x-1 ${direction === 'left' ? 'mr-2' : 'ml-2'}`}>
+        <div className={`w-1 h-1 rounded-full animate-pulse`} style={{ backgroundColor: trailColor, opacity: 0.8 }}></div>
+        <div className={`w-1 h-1 rounded-full animate-pulse delay-75`} style={{ backgroundColor: trailColor, opacity: 0.6 }}></div>
+        <div className={`w-1 h-1 rounded-full animate-pulse delay-150`} style={{ backgroundColor: trailColor, opacity: 0.4 }}></div>
+        <div className={`w-1 h-1 rounded-full animate-pulse delay-200`} style={{ backgroundColor: trailColor, opacity: 0.2 }}></div>
+      </div>
+    </div>
+  );
+};
+
+// Flying Airplanes Background Motif Component
+export const AirplaneMotif = ({ theme, className = "" }) => {
+  return (
+    <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
+      {/* Large flying airplane */}
+      <div className="absolute top-1/4 right-1/4 transform rotate-12 animate-pulse">
+        <TrotairPlane size={120} theme={theme} opacity={0.08} rotation={-15} />
+      </div>
+      
+      {/* Medium airplanes with trails */}
+      <div className="absolute top-3/4 left-1/4 transform -rotate-12">
+        <PlaneTrail theme={theme} direction="right" className="opacity-60" />
+      </div>
+      
+      <div className="absolute top-1/2 right-1/3 transform rotate-45">
+        <TrotairPlane size={60} theme={theme} opacity={0.06} rotation={30} />
+      </div>
+      
+      {/* Small accent airplanes */}
+      <div className="absolute top-1/6 left-1/3 transform rotate-30">
+        <TrotairPlane size={30} theme={theme} opacity={0.05} rotation={-45} />
+      </div>
+      
+      <div className="absolute bottom-1/4 right-1/6 transform -rotate-30">
+        <TrotairPlane size={40} theme={theme} opacity={0.07} rotation={60} />
+      </div>
+      
+      {/* Flying formation */}
+      <div className="absolute top-1/3 left-1/2 transform rotate-6">
+        <div className="flex space-x-3 opacity-50">
+          <TrotairPlane size={20} theme={theme} opacity={0.4} />
+          <TrotairPlane size={18} theme={theme} opacity={0.3} />
+          <TrotairPlane size={16} theme={theme} opacity={0.2} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Floating Airplane Component for Decorative Purposes
+export const FloatingPlane = ({ theme, size = 30, className = "", delay = 0 }) => {
+  return (
+    <div 
+      className={`animate-bounce ${className}`}
+      style={{ 
+        animationDelay: `${delay}ms`,
+        animationDuration: '3s',
+        animationIterationCount: 'infinite'
+      }}
+    >
+      <TrotairPlane size={size} theme={theme} opacity={0.6} rotation={Math.random() * 60 - 30} />
+    </div>
+  );
+};
+
 // Trotair Moroccan Star SVG Component - Based on actual logo
 export const TrotairStar = ({ className = "", size = 40, theme = "summer", opacity = 1 }) => {
   const starColor = theme === 'summer' ? '#F59E0B' : '#10B981'; // Amber for summer, Emerald for winter
