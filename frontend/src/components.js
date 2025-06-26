@@ -8,6 +8,97 @@ const API = `${BACKEND_URL}/api`;
 // Initialize Stripe (use test key)
 const stripePromise = loadStripe('pk_test_51OaEbqJqGQgJsNhCcYlTgRKpNNPnbWlvZwJdnqI8MNAjyKrUBn9FoVyVyxdTYQQTLgqDjJ2TgEVqQY9TbBmzr5C400kgGMDJBE');
 
+// Trotair Moroccan Star SVG Component
+export const TrotairStar = ({ className = "", size = 40, theme = "summer", opacity = 1 }) => {
+  const starColor = theme === 'summer' ? '#F59E0B' : '#10B981'; // Amber for summer, Emerald for winter
+  
+  return (
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 100 100" 
+      className={className}
+      style={{ opacity }}
+    >
+      {/* Moroccan-inspired geometric star */}
+      <defs>
+        <linearGradient id={`starGradient-${theme}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={starColor} stopOpacity="1" />
+          <stop offset="100%" stopColor={starColor} stopOpacity="0.8" />
+        </linearGradient>
+      </defs>
+      
+      {/* Outer star points */}
+      <path
+        d="M50 5 L55 25 L75 20 L65 40 L85 50 L65 60 L75 80 L55 75 L50 95 L45 75 L25 80 L35 60 L15 50 L35 40 L25 20 L45 25 Z"
+        fill={`url(#starGradient-${theme})`}
+        stroke={starColor}
+        strokeWidth="1"
+      />
+      
+      {/* Inner geometric pattern */}
+      <path
+        d="M50 20 L60 35 L75 35 L65 50 L75 65 L60 65 L50 80 L40 65 L25 65 L35 50 L25 35 L40 35 Z"
+        fill="white"
+        fillOpacity="0.3"
+      />
+      
+      {/* Center circle */}
+      <circle
+        cx="50"
+        cy="50"
+        r="8"
+        fill={starColor}
+      />
+      
+      {/* Small decorative elements */}
+      <circle cx="50" cy="30" r="2" fill="white" fillOpacity="0.6" />
+      <circle cx="50" cy="70" r="2" fill="white" fillOpacity="0.6" />
+      <circle cx="30" cy="50" r="2" fill="white" fillOpacity="0.6" />
+      <circle cx="70" cy="50" r="2" fill="white" fillOpacity="0.6" />
+    </svg>
+  );
+};
+
+// Animated Trotair Star Component
+export const AnimatedTrotairStar = ({ className = "", size = 40, theme = "summer", opacity = 1, animate = true }) => {
+  return (
+    <div className={`${animate ? 'animate-pulse' : ''} ${className}`}>
+      <TrotairStar size={size} theme={theme} opacity={opacity} />
+    </div>
+  );
+};
+
+// Background Star Motif Component
+export const StarMotif = ({ theme, className = "" }) => {
+  return (
+    <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
+      {/* Large background star */}
+      <div className="absolute top-1/4 right-1/4 transform rotate-12">
+        <TrotairStar size={200} theme={theme} opacity={0.1} />
+      </div>
+      
+      {/* Medium stars */}
+      <div className="absolute top-3/4 left-1/4 transform -rotate-12">
+        <TrotairStar size={120} theme={theme} opacity={0.08} />
+      </div>
+      
+      <div className="absolute top-1/2 right-1/3 transform rotate-45">
+        <TrotairStar size={80} theme={theme} opacity={0.06} />
+      </div>
+      
+      {/* Small accent stars */}
+      <div className="absolute top-1/6 left-1/3 transform rotate-30">
+        <TrotairStar size={40} theme={theme} opacity={0.05} />
+      </div>
+      
+      <div className="absolute bottom-1/4 right-1/6 transform -rotate-30">
+        <TrotairStar size={60} theme={theme} opacity={0.07} />
+      </div>
+    </div>
+  );
+};
+
 // Mobile-first Header Component with Language and Currency Switchers
 export const Header = ({ language, setLanguage, currency, setCurrency, theme, setTheme }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
