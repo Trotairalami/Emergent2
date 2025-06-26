@@ -917,16 +917,8 @@ export const FeaturedDestinations = ({ language, currency, theme }) => {
   const currencySymbol = currency === 'MAD' ? 'MAD' : currency === 'EUR' ? '€' : '$';
 
   return (
-    <section className="py-12 md:py-16 bg-gray-50 relative overflow-hidden">
-      {/* Subtle star motifs */}
-      <div className="absolute top-10 right-10">
-        <TrotairStar size={60} theme={theme} opacity={0.1} />
-      </div>
-      <div className="absolute bottom-10 left-10">
-        <TrotairStar size={40} theme={theme} opacity={0.08} className="transform rotate-45" />
-      </div>
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <section className="py-12 md:py-16 bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
             {t.title}
