@@ -1,52 +1,65 @@
-import { useEffect } from "react";
-import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import './App.css';
+import { 
+  Header, 
+  HeroSection, 
+  FeaturedDestinations, 
+  AboutSection, 
+  PaymentSection, 
+  Footer 
+} from './components';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+function App() {
+  const [language, setLanguage] = useState('en');
+  const [currency, setCurrency] = useState('EUR');
+  const [theme, setTheme] = useState('summer'); // summer (yellow/warm) or winter (green/cool)
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
+  // Auto-detect theme based on current month (June = summer)
   useEffect(() => {
-    helloWorldApi();
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    // Summer months: June, July, August, September (6-9)
+    // Winter months: October, November, December, January, February, March, April, May (10-12, 1-5)
+    const isSummer = currentMonth >= 6 && currentMonth <= 9;
+    setTheme(isSummer ? 'summer' : 'winter');
   }, []);
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
-
-function App() {
-  return (
     <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <Header 
+        language={language} 
+        setLanguage={setLanguage}
+        currency={currency}
+        setCurrency={setCurrency}
+        theme={theme}
+        setTheme={setTheme}
+      />
+      
+      <HeroSection 
+        language={language}
+        currency={currency}
+        theme={theme}
+      />
+      
+      <FeaturedDestinations 
+        language={language}
+        currency={currency}
+        theme={theme}
+      />
+      
+      <AboutSection 
+        language={language}
+        theme={theme}
+      />
+      
+      <PaymentSection 
+        language={language}
+        theme={theme}
+      />
+      
+      <Footer 
+        language={language}
+        theme={theme}
+      />
     </div>
   );
 }
