@@ -172,20 +172,182 @@ export const AirplaneMotif = ({ theme, className = "" }) => {
   );
 };
 
-// Floating Airplane Component for Decorative Purposes
-export const FloatingPlane = ({ theme, size = 30, className = "", delay = 0 }) => {
+// Airport Autocomplete Component
+export const AirportAutocomplete = ({ value, onChange, placeholder, className = "" }) => {
+  const [suggestions, setSuggestions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  const fetchSuggestions = async (query) => {
+    if (!query || query.length < 2) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`${API}/places/suggestions`, {
+        params: { query, types: 'airport,city' }
+      });
+      
+      if (response.data && response.data.data) {
+        setSuggestions(response.data.data);
+        setShowDropdown(true);
+        setSelectedIndex(-1);
+      }
+    } catch (error) {
+      console.error('Failed to fetch suggestions:', error);
+      setSuggestions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const debouncedFetchSuggestions = useCallback(
+    debounce(fetchSuggestions, 300),
+    []
+  );
+
+  const handleInputChange = (e) => {
+    const newValue = e.target.value;
+    onChange(newValue);
+    debouncedFetchSuggestions(newValue);
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    const displayValue = suggestion.iata_code ? `${suggestion.iata_code} - ${suggestion.name}` : suggestion.name;
+    onChange(displayValue);
+    setShowDropdown(false);
+    setSuggestions([]);
+    setSelectedIndex(-1);
+  };
+
+  const handleKeyDown = (e) => {
+    if (!showDropdown || suggestions.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+          handleSuggestionClick(suggestions[selectedIndex]);
+        }
+        break;
+      case 'Escape':
+        setShowDropdown(false);
+        setSelectedIndex(-1);
+        break;
+    }
+  };
+
+  const handleBlur = (e) => {
+    // Delay hiding dropdown to allow clicks on suggestions
+    setTimeout(() => {
+      if (!dropdownRef.current?.contains(document.activeElement)) {
+        setShowDropdown(false);
+        setSelectedIndex(-1);
+      }
+    }, 150);
+  };
+
+  const formatSuggestion = (suggestion) => {
+    if (suggestion.iata_code) {
+      return {
+        primary: `${suggestion.iata_code} - ${suggestion.name}`,
+        secondary: `${suggestion.city_name || suggestion.name}, ${suggestion.iata_country_code}`
+      };
+    } else {
+      return {
+        primary: suggestion.name,
+        secondary: `${suggestion.iata_country_code}`
+      };
+    }
+  };
+
   return (
-    <div 
-      className={`animate-bounce ${className}`}
-      style={{ 
-        animationDelay: `${delay}ms`,
-        animationDuration: '3s',
-        animationIterationCount: 'infinite'
-      }}
-    >
-      <TrotairPlane size={size} theme={theme} opacity={0.6} rotation={Math.random() * 60 - 30} />
+    <div className="relative">
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+        onFocus={() => {
+          if (suggestions.length > 0) setShowDropdown(true);
+        }}
+        placeholder={placeholder}
+        className={`w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base ${className}`}
+        autoComplete="off"
+      />
+      
+      {isLoading && (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+        </div>
+      )}
+
+      {showDropdown && suggestions.length > 0 && (
+        <div 
+          ref={dropdownRef}
+          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+        >
+          {suggestions.map((suggestion, index) => {
+            const formatted = formatSuggestion(suggestion);
+            return (
+              <div
+                key={suggestion.id || index}
+                onClick={() => handleSuggestionClick(suggestion)}
+                className={`px-4 py-3 cursor-pointer hover:bg-blue-50 transition-colors ${
+                  selectedIndex === index ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="flex-shrink-0">
+                    {suggestion.type === 'airport' ? '✈️' : '🏙️'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">
+                      {formatted.primary}
+                    </div>
+                    <div className="text-xs text-gray-500 truncate">
+                      {formatted.secondary}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
+};
+
+// Debounce utility function
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 };
 
 // Trotair Moroccan Star SVG Component - Based on actual logo
