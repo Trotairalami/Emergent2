@@ -1001,8 +1001,16 @@ export const AboutSection = ({ language, theme }) => {
   const t = translations[language];
 
   return (
-    <section className="py-12 md:py-16 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-12 md:py-16 bg-white relative overflow-hidden">
+      {/* Subtle star motifs */}
+      <div className="absolute top-20 left-20 transform -rotate-12">
+        <TrotairStar size={80} theme={theme} opacity={0.06} />
+      </div>
+      <div className="absolute bottom-20 right-20 transform rotate-30">
+        <TrotairStar size={50} theme={theme} opacity={0.08} />
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
           <div className="order-2 lg:order-1">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 md:mb-6">
