@@ -733,6 +733,7 @@ export const HeroSection = ({ language, currency, theme, onFlightResults }) => {
       const response = await axios.post(`${API}/flights/search`, searchRequest);
       
       if (response.data && response.data.data && response.data.data.offers) {
+        // Pass the clean offers data to the results component
         onFlightResults(response.data.data.offers);
         // Scroll to results
         setTimeout(() => {
@@ -743,7 +744,7 @@ export const HeroSection = ({ language, currency, theme, onFlightResults }) => {
       }
     } catch (error) {
       console.error('Flight search error:', error);
-      setSearchError(error.response?.data?.detail || 'Failed to search flights. Please try again.');
+      setSearchError('Failed to search flights. Please try again.');
     } finally {
       setIsSearching(false);
     }
