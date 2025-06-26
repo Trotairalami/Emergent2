@@ -580,13 +580,29 @@ export const HeroSection = ({ language, currency, theme, onFlightResults }) => {
 
   return (
     <section 
-      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
+      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat overflow-hidden"
       style={{
         backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1605130284535-11dd9eedc58a')`
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full">
+      {/* Airplane motif background */}
+      <AirplaneMotif theme={theme} />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full relative z-10">
         <div className="max-w-4xl mx-auto">
+          {/* Hero Airplane Logo */}
+          <div className="flex justify-center mb-6 md:mb-8">
+            <div className="relative">
+              <AnimatedTrotairPlane size={80} theme={theme} animate={true} className="drop-shadow-lg" />
+              {/* Animated contrail effect */}
+              <div className="absolute top-1/2 left-full ml-4 flex items-center space-x-1">
+                <div className={`w-2 h-1 rounded-full animate-pulse ${theme === 'summer' ? 'bg-amber-300' : 'bg-emerald-300'}`}></div>
+                <div className={`w-2 h-1 rounded-full animate-pulse delay-75 ${theme === 'summer' ? 'bg-amber-300' : 'bg-emerald-300'}`} style={{ opacity: 0.7 }}></div>
+                <div className={`w-2 h-1 rounded-full animate-pulse delay-150 ${theme === 'summer' ? 'bg-amber-300' : 'bg-emerald-300'}`} style={{ opacity: 0.4 }}></div>
+              </div>
+            </div>
+          </div>
+          
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight">
             {t.title}
           </h1>
