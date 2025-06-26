@@ -21,6 +21,9 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# Initialize Stripe
+stripe_checkout = StripeCheckout(api_key=os.environ.get('STRIPE_SECRET_KEY'))
+
 # Create the main app without a prefix
 app = FastAPI()
 
@@ -36,6 +39,30 @@ class StatusCheck(BaseModel):
 
 class StatusCheckCreate(BaseModel):
     client_name: str
+
+# Duffel API Models
+class FlightSearchRequest(BaseModel):
+    origin: str
+    destination: str
+    departure_date: str
+    return_date: Optional[str] = None
+    passengers: int = 1
+    cabin_class: str = "economy"
+
+class OfferRequest(BaseModel):
+    origin: str
+    destination: str
+    departure_date: str
+    return_date: Optional[str] = None
+    passengers: List[Dict] = [{"type": "adult"}]
+
+# Payment Models
+class PaymentRequest(BaseModel):
+    flight_offer_id: str
+    amount: float
+    currency: str
+    origin_url: str
+    metadata: Dict[str, str] = {}
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
