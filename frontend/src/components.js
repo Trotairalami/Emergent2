@@ -1239,11 +1239,7 @@ export const AboutSection = ({ language, theme }) => {
               />
             </div>
             
-            <div className={`absolute -bottom-4 md:-bottom-6 -left-4 md:-left-6 ${theme === 'summer' ? 'bg-amber-500' : 'bg-emerald-500'} text-white p-4 md:p-6 rounded-xl md:rounded-2xl shadow-xl max-w-xs relative`}>
-              {/* Small airplane accent */}
-              <div className="absolute -top-2 -right-2">
-                <TrotairPlane size={16} theme={theme} opacity={0.7} rotation={-15} />
-              </div>
+            <div className={`absolute -bottom-4 md:-bottom-6 -left-4 md:-left-6 ${theme === 'summer' ? 'bg-amber-500' : 'bg-emerald-500'} text-white p-4 md:p-6 rounded-xl md:rounded-2xl shadow-xl max-w-xs`}>
               <h3 className="font-bold text-sm md:text-lg mb-1 md:mb-2">{t.support}</h3>
               <p className="text-xs md:text-sm opacity-90">{t.supportDesc}</p>
             </div>
