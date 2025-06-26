@@ -898,10 +898,8 @@ export const HeroSection = ({ language, currency, theme, onFlightResults }) => {
   );
 };
 
-// Flight Results Component
+// Flight Results Component - Enhanced for Duffel API Response
 export const FlightResults = ({ flights, language, currency, theme, onBookFlight }) => {
-  const [selectedFlight, setSelectedFlight] = useState(null);
-
   const translations = {
     en: {
       results: 'Flight Results',
@@ -916,7 +914,10 @@ export const FlightResults = ({ flights, language, currency, theme, onBookFlight
       arrival: 'Arrival',
       airline: 'Airline',
       price: 'Price',
-      perPerson: 'per person'
+      perPerson: 'per person',
+      cabin: 'Cabin',
+      baggage: 'Baggage',
+      included: 'included'
     },
     fr: {
       results: 'Résultats de Vol',
@@ -931,7 +932,10 @@ export const FlightResults = ({ flights, language, currency, theme, onBookFlight
       arrival: 'Arrivée',
       airline: 'Compagnie',
       price: 'Prix',
-      perPerson: 'par personne'
+      perPerson: 'par personne',
+      cabin: 'Cabine',
+      baggage: 'Bagages',
+      included: 'inclus'
     },
     ar: {
       results: 'نتائج الرحلات',
@@ -946,32 +950,63 @@ export const FlightResults = ({ flights, language, currency, theme, onBookFlight
       arrival: 'الوصول',
       airline: 'شركة الطيران',
       price: 'السعر',
-      perPerson: 'للفرد'
+      perPerson: 'للفرد',
+      cabin: 'الدرجة',
+      baggage: 'الأمتعة',
+      included: 'مشمول'
     }
   };
 
   const t = translations[language];
 
   const formatDuration = (duration) => {
+    if (!duration) return '';
     const match = duration.match(/PT(\d+H)?(\d+M)?/);
+    if (!match) return duration;
+    
     const hours = match[1] ? match[1].replace('H', 'h ') : '';
     const minutes = match[2] ? match[2].replace('M', 'm') : '';
-    return hours + minutes;
+    return (hours + minutes).trim();
   };
 
   const formatTime = (datetime) => {
-    return new Date(datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (!datetime) return '';
+    return new Date(datetime).toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
   };
 
   const formatDate = (datetime) => {
-    return new Date(datetime).toLocaleDateString();
+    if (!datetime) return '';
+    return new Date(datetime).toLocaleDateString([], {
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   const getStopsText = (segments) => {
+    if (!segments || segments.length === 0) return t.direct;
     const stops = segments.length - 1;
     if (stops === 0) return t.direct;
     if (stops === 1) return `1 ${t.stop}`;
     return `${stops} ${t.stops}`;
+  };
+
+  const getBaggageInfo = (passengers) => {
+    if (!passengers || passengers.length === 0) return '';
+    const baggages = passengers[0].baggages || [];
+    return baggages.map(bag => `${bag.quantity} ${bag.type.replace('_', ' ')}`).join(', ');
+  };
+
+  const formatPrice = (amount, curr) => {
+    const price = parseFloat(amount);
+    if (curr === 'EUR') return `€${price.toFixed(0)}`;
+    if (curr === 'USD') return `$${price.toFixed(0)}`;
+    if (curr === 'GBP') return `£${price.toFixed(0)}`;
+    if (curr === 'MAD') return `${price.toFixed(0)} MAD`;
+    return `${price.toFixed(0)} ${curr}`;
   };
 
   if (!flights || flights.length === 0) {
@@ -996,82 +1031,119 @@ export const FlightResults = ({ flights, language, currency, theme, onBookFlight
         
         <div className="space-y-4 md:space-y-6">
           {flights.map((flight, index) => (
-            <div key={flight.id || index} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-              <div className="p-4 md:p-6">
-                {/* Flight Header */}
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
-                  <div className="mb-2 md:mb-0">
-                    <h3 className="text-lg md:text-xl font-bold text-gray-900">{flight.owner?.name}</h3>
-                    <p className="text-sm text-gray-600">{t.airline}</p>
+            <div key={flight.id || index} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200">
+              
+              {/* Flight Header */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 md:px-6 py-3 md:py-4 border-b border-gray-200">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                  <div className="flex items-center space-x-3 mb-2 md:mb-0">
+                    {flight.owner?.logo_symbol_url && (
+                      <img 
+                        src={flight.owner.logo_symbol_url} 
+                        alt={flight.owner.name}
+                        className="w-8 h-8 md:w-10 md:h-10 object-contain"
+                        onError={(e) => {e.target.style.display = 'none'}}
+                      />
+                    )}
+                    <div>
+                      <h3 className="text-lg md:text-xl font-bold text-gray-900">{flight.owner?.name}</h3>
+                      <p className="text-xs md:text-sm text-gray-600">{t.airline}</p>
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className={`text-2xl md:text-3xl font-bold ${theme === 'summer' ? 'text-amber-600' : 'text-emerald-600'}`}>
-                      {currency} {parseFloat(flight.total_amount).toFixed(2)}
+                      {formatPrice(flight.total_amount, flight.total_currency)}
                     </div>
                     <p className="text-xs md:text-sm text-gray-600">{t.perPerson}</p>
                   </div>
                 </div>
+              </div>
 
-                {/* Flight Slices */}
-                <div className="space-y-4">
-                  {flight.slices?.map((slice, sliceIndex) => (
-                    <div key={sliceIndex} className="border border-gray-200 rounded-lg p-3 md:p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                        {/* Departure */}
-                        <div className="text-center md:text-left">
-                          <div className="text-lg md:text-xl font-bold">
-                            {formatTime(slice.segments[0]?.departing_at)}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {slice.segments[0]?.origin?.iata_code}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {formatDate(slice.segments[0]?.departing_at)}
-                          </div>
+              {/* Flight Details */}
+              <div className="p-4 md:p-6">
+                {flight.slices?.map((slice, sliceIndex) => (
+                  <div key={sliceIndex} className={`${sliceIndex > 0 ? 'border-t border-gray-200 pt-4 md:pt-6 mt-4 md:mt-6' : ''}`}>
+                    
+                    {/* Route Overview */}
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center mb-4">
+                      
+                      {/* Departure */}
+                      <div className="text-center md:text-left">
+                        <div className="text-2xl md:text-3xl font-bold text-gray-900">
+                          {formatTime(slice.segments[0]?.departing_at)}
                         </div>
+                        <div className="text-sm md:text-base font-medium text-gray-700">
+                          {slice.segments[0]?.origin?.iata_code}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {slice.segments[0]?.origin?.city_name || slice.segments[0]?.origin?.name}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {formatDate(slice.segments[0]?.departing_at)}
+                        </div>
+                      </div>
 
-                        {/* Flight Info */}
-                        <div className="text-center">
-                          <div className="text-sm text-gray-600">
+                      {/* Flight Path */}
+                      <div className="text-center col-span-1 md:col-span-3">
+                        <div className="flex items-center justify-center space-x-2 mb-2">
+                          <div className="text-sm font-medium text-gray-600">
                             {formatDuration(slice.duration)}
                           </div>
-                          <div className="flex items-center justify-center my-2">
-                            <div className="h-0.5 bg-gray-300 flex-1"></div>
-                            <div className="mx-2 text-xs text-gray-500">
-                              ✈️
-                            </div>
-                            <div className="h-0.5 bg-gray-300 flex-1"></div>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {getStopsText(slice.segments)}
-                          </div>
                         </div>
-
-                        {/* Arrival */}
-                        <div className="text-center md:text-right">
-                          <div className="text-lg md:text-xl font-bold">
-                            {formatTime(slice.segments[slice.segments.length - 1]?.arriving_at)}
+                        <div className="flex items-center justify-center mb-2">
+                          <div className="h-0.5 bg-gray-300 flex-1 max-w-32"></div>
+                          <div className="mx-3 text-gray-500">
+                            ✈️
                           </div>
-                          <div className="text-sm text-gray-600">
-                            {slice.segments[slice.segments.length - 1]?.destination?.iata_code}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {formatDate(slice.segments[slice.segments.length - 1]?.arriving_at)}
-                          </div>
+                          <div className="h-0.5 bg-gray-300 flex-1 max-w-32"></div>
                         </div>
+                        <div className="text-xs text-gray-500">
+                          {getStopsText(slice.segments)}
+                        </div>
+                      </div>
 
-                        {/* Action Button */}
-                        <div className="text-center md:text-right">
-                          <button
-                            onClick={() => onBookFlight(flight)}
-                            className={`w-full md:w-auto ${theme === 'summer' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'} text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium transition-colors text-sm md:text-base`}
-                          >
-                            {t.bookNow}
-                          </button>
+                      {/* Arrival */}
+                      <div className="text-center md:text-right">
+                        <div className="text-2xl md:text-3xl font-bold text-gray-900">
+                          {formatTime(slice.segments[slice.segments.length - 1]?.arriving_at)}
+                        </div>
+                        <div className="text-sm md:text-base font-medium text-gray-700">
+                          {slice.segments[slice.segments.length - 1]?.destination?.iata_code}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {slice.segments[slice.segments.length - 1]?.destination?.city_name || slice.segments[slice.segments.length - 1]?.destination?.name}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {formatDate(slice.segments[slice.segments.length - 1]?.arriving_at)}
                         </div>
                       </div>
                     </div>
-                  ))}
+
+                    {/* Additional Flight Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 bg-gray-50 rounded-lg p-3 md:p-4">
+                      <div>
+                        <span className="font-medium">{t.cabin}:</span> {slice.segments[0]?.passengers[0]?.cabin_class_marketing_name || 'Economy'}
+                      </div>
+                      {getBaggageInfo(slice.segments[0]?.passengers) && (
+                        <div>
+                          <span className="font-medium">{t.baggage}:</span> {getBaggageInfo(slice.segments[0]?.passengers)} {t.included}
+                        </div>
+                      )}
+                      <div>
+                        <span className="font-medium">Flight:</span> {slice.segments[0]?.marketing_carrier?.iata_code}{slice.segments[0]?.marketing_carrier_flight_number}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Action Button */}
+                <div className="flex justify-center mt-6">
+                  <button
+                    onClick={() => onBookFlight(flight)}
+                    className={`w-full md:w-auto ${theme === 'summer' ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600' : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600'} text-white px-8 py-3 md:py-4 rounded-lg font-semibold text-base md:text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-300`}
+                  >
+                    {t.bookNow}
+                  </button>
                 </div>
               </div>
             </div>
