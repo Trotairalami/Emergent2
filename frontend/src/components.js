@@ -1038,10 +1038,8 @@ export const PaymentModal = ({ flight, language, currency, theme, isOpen, onClos
               {t.close}
             </button>
 
-            <p className="text-xs text-gray-500 text-center flex items-center justify-center space-x-2">
-              <span>🔒</span>
-              <span>{t.securePayment}</span>
-              <TrotairPlane size={12} theme={theme} opacity={0.5} />
+            <p className="text-xs text-gray-500 text-center">
+              🔒 {t.securePayment}
             </p>
           </div>
         </div>
