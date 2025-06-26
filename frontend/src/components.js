@@ -698,7 +698,21 @@ export const HeroSection = ({ language, currency, theme, onFlightResults }) => {
   const t = translations[language];
 
   const handleSearch = async () => {
-    if (!searchData.origin || !searchData.destination || !searchData.departure_date) {
+    // Extract airport codes from autocomplete values
+    const extractAirportCode = (value) => {
+      if (!value) return '';
+      // If value contains " - " (from autocomplete), extract the code before it
+      if (value.includes(' - ')) {
+        return value.split(' - ')[0].trim();
+      }
+      // Otherwise, assume it's already a code or city name
+      return value.trim();
+    };
+
+    const originCode = extractAirportCode(searchData.origin);
+    const destinationCode = extractAirportCode(searchData.destination);
+
+    if (!originCode || !destinationCode || !searchData.departure_date) {
       setSearchError('Please fill in all required fields');
       return;
     }
@@ -708,8 +722,8 @@ export const HeroSection = ({ language, currency, theme, onFlightResults }) => {
     
     try {
       const searchRequest = {
-        origin: searchData.origin.toUpperCase(),
-        destination: searchData.destination.toUpperCase(),
+        origin: originCode.toUpperCase(),
+        destination: destinationCode.toUpperCase(),
         departure_date: searchData.departure_date,
         return_date: searchData.tripType === 'roundtrip' ? searchData.return_date : null,
         passengers: searchData.passengers,
