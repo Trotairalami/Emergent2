@@ -1107,19 +1107,8 @@ export const FeaturedDestinations = ({ language, currency, theme }) => {
   const currencySymbol = currency === 'MAD' ? 'MAD' : currency === 'EUR' ? '€' : '$';
 
   return (
-    <section className="py-12 md:py-16 bg-gray-50 relative overflow-hidden">
-      {/* Floating airplanes */}
-      <div className="absolute top-10 right-10">
-        <FloatingPlane theme={theme} size={50} delay={0} />
-      </div>
-      <div className="absolute bottom-10 left-10">
-        <FloatingPlane theme={theme} size={35} delay={1000} />
-      </div>
-      <div className="absolute top-1/2 right-1/4">
-        <TrotairPlane size={25} theme={theme} opacity={0.1} rotation={45} />
-      </div>
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <section className="py-12 md:py-16 bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
             {t.title}
