@@ -350,11 +350,10 @@ export const Header = ({ language, setLanguage, currency, setCurrency, theme, se
         <div className="flex justify-between items-center py-3 md:py-4">
           {/* Logo */}
           <div className="flex items-center">
-            <div className="flex items-center space-x-3">
-              <AnimatedTrotairPlane size={32} theme={theme} animate={true} />
-              <div className="text-xl md:text-2xl font-bold text-white">
-                Trotair
-              </div>
+            <div className={`text-xl md:text-2xl font-bold text-white`}>
+              <span className="bg-white bg-opacity-20 px-3 md:px-4 py-2 rounded-lg">
+                ✈️ Trotair
+              </span>
             </div>
           </div>
 
