@@ -865,7 +865,7 @@ export const FlightResults = ({ flights, language, currency, theme, onBookFlight
                           <div className="flex items-center justify-center my-2">
                             <div className="h-0.5 bg-gray-300 flex-1"></div>
                             <div className="mx-2 text-xs text-gray-500">
-                              <TrotairPlane size={16} theme={theme} opacity={0.7} />
+                              ✈️
                             </div>
                             <div className="h-0.5 bg-gray-300 flex-1"></div>
                           </div>
