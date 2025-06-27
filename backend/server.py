@@ -215,24 +215,75 @@ async def search_flights(request: FlightSearchRequest):
 offer_request_id = response_data["data"]["id"]
 
 # Deuxième appel : récupérer les offres
-offers_response = await client.get(
-    f"https://api.duffel.com/air/offers?offer_request_id={offer_request_id}",
-    headers=headers
-)
+@api_router.post("/flights/search")
+async def search_flights(request: FlightSearchRequest):
+    """Search flights using Duffel API"""
+    
+    try:
+        logger.info(f"Flight search request: {request.origin} -> {request.destination} on {request.departure_date}")
+        
+        # Validate required fields
+        if not request.origin or not request.destination or not request.departure_date:
+            raise HTTPException(status_code=400, detail="Missing required fields: origin, destination, or departure_date")
+        
+        # Build passengers array based on count
+        passengers = [{"type": "adult"} for _ in range(request.passengers)]
+        
+        # Build slices for the request
+        slices = [
+            {
+                "origin": request.origin,
+                "destination": request.destination,
+                "departure_date": request.departure_date
+            }
+        ]
+        
+        # Add return slice if return date provided
+        if request.return_date:
+            slices.append({
+                "origin": request.destination,
+                "destination": request.origin,
+                "departure_date": request.return_date
+            })
 
-if offers_response.status_code != 200:
-    logger.error(f"Erreur récupération des offres : {offers_response.status_code}")
-    raise HTTPException(status_code=500, detail="Erreur lors de la récupération des offres.")
+        # Duffel API payload
+        payload = {
+            "data": {
+                "slices": slices,
+                "passengers": passengers,
+                "cabin_class": request.cabin_class
+            }
+        }
 
-offers_data = await offers_response.json()
+        # Verify API key is loaded
+        api_key = os.getenv('DUFFEL_ACCESS_TOKEN')
+        if not api_key:
+            logger.error("DUFFEL_ACCESS_TOKEN not found in environment variables")
+            raise HTTPException(status_code=500, detail="Configuration error. Please try again later.")
+        
+        logger.info(f"Duffel API payload: {payload}")
 
-            logger.info(f"Duffel API response status: {response.status_code}")
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Duffel-Version": "v2",
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            }
             
-            if response.status_code != 200 and response.status_code != 201:
-                error_text = response.text
+            logger.info("Making request to Duffel API...")
+            logger.info(f"Authorization header: Bearer {api_key[:20]}...")  # Partial key for debug
+            
+            # Premier appel : création d'une demande d'offres
+            response = await client.post(
+                "https://api.duffel.com/air/offer_requests",
+                headers=headers,
+                json=payload
+            )
+            
+            if response.status_code not in (200, 201):
+                error_text = await response.text()
                 logger.error(f"Duffel API error {response.status_code}: {error_text}")
-                
-                # Return user-friendly error instead of raw API response
                 if response.status_code == 400:
                     raise HTTPException(status_code=400, detail="Invalid search parameters. Please check your airport codes and dates.")
                 elif response.status_code == 401:
@@ -242,13 +293,27 @@ offers_data = await offers_response.json()
                 else:
                     raise HTTPException(status_code=500, detail="Flight search service temporarily unavailable. Please try again later.")
             
-            response_data = response.json()
+            response_data = await response.json()
+            offer_request_id = response_data["data"]["id"]
+
+            # Deuxième appel : récupérer les offres avec l'ID obtenu
+            offers_response = await client.get(
+                f"https://api.duffel.com/air/offers?offer_request_id={offer_request_id}",
+                headers=headers
+            )
+
+            if offers_response.status_code != 200:
+                logger.error(f"Erreur récupération des offres : {offers_response.status_code}")
+                raise HTTPException(status_code=500, detail="Erreur lors de la récupération des offres.")
+
+            offers_data = await offers_response.json()
+
             logger.info(f"Duffel API returned {len(offers_data.get('data', []))} offers")
 
-            # Store search in MongoDB
+            # Stocker la recherche en MongoDB
             try:
                 search_doc = {
-                    "offer_request_id": response_data["data"]["id"],
+                    "offer_request_id": offer_request_id,
                     "origin": request.origin,
                     "destination": request.destination,
                     "departure_date": request.departure_date,
@@ -262,9 +327,20 @@ offers_data = await offers_response.json()
                 logger.info("Search stored in database")
             except Exception as db_error:
                 logger.error(f"Database storage error: {str(db_error)}")
-                # Continue even if DB storage fails
-            
+
             return offers_data
+        
+    except HTTPException:
+        raise
+    except httpx.TimeoutException:
+        logger.error("Duffel API timeout")
+        raise HTTPException(status_code=504, detail="Flight search request timed out. Please try again.")
+    except httpx.ConnectError:
+        logger.error("Duffel API connection error")
+        raise HTTPException(status_code=503, detail="Flight search service unavailable. Please try again later.")
+    except Exception as e:
+        logger.error(f"Unexpected error in flight search: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An unexpected error occurred. Please try again later.")
             
     except HTTPException:
         # Re-raise HTTP exceptions as-is
