@@ -90,6 +90,14 @@ async def get_place_suggestions(query: str, types: str = "airport"):
     if not query or len(query) < 2:
         return {"data": []}
     
+    # Verify API key is loaded
+    api_key = os.getenv('DUFFEL_ACCESS_TOKEN')
+    if not api_key:
+        logger.error("DUFFEL_ACCESS_TOKEN not found in environment variables")
+        return {"data": []}
+    
+    logger.info("Places API request for query: " + query)
+    
     # Parse types parameter (can be comma-separated)
     type_list = [t.strip() for t in types.split(",")]
     
@@ -102,16 +110,18 @@ async def get_place_suggestions(query: str, types: str = "airport"):
     for place_type in type_list:
         if "types[]" in params:
             # Handle multiple types
-            params["types[" + str(len([k for k in params.keys() if k.startswith("types[")])) + "]"] = place_type
+            params["types[" + str(len([k for k in params.keys() if k.startswith('types[')])) + "]"] = place_type
         else:
             params["types[]"] = place_type
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         headers = {
-            "Authorization": "Bearer " + str(os.getenv("DUFFEL_ACCESS_TOKEN")),
-            "Duffel-Version": "v2",
+            "Authorization": "Bearer " + api_key,
+            "Duffel-Version": "v2", 
             "Accept": "application/json"
         }
+        
+        logger.info("Places API headers: " + str(dict(headers)))
         
         try:
             response = await client.get(
@@ -120,8 +130,10 @@ async def get_place_suggestions(query: str, types: str = "airport"):
                 params=params
             )
             
+            logger.info("Places API response status: " + str(response.status_code))
+            
             if response.status_code != 200:
-                logger.error("Duffel Places API error: " + str(response.text))
+                logger.error("Duffel Places API error " + str(response.status_code) + ": " + str(response.text))
                 return {"data": []}
             
             return response.json()
