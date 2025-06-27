@@ -148,27 +148,24 @@ async def get_place_suggestions(query: str, types: str = "airport"):
 @api_router.post("/flights/search")
 async def search_flights(request: FlightSearchRequest):
     """Search flights using Duffel API"""
-    
+
     try:
         logger.info(f"Flight search request: {request.origin} -> {request.destination} on {request.departure_date}")
-        
-        # Validate required fields
+
+        # Validation de base
         if not request.origin or not request.destination or not request.departure_date:
             raise HTTPException(status_code=400, detail="Missing required fields: origin, destination, or departure_date")
-        
-        # Build passengers array based on count
+
+        # Passagers
         passengers = [{"type": "adult"} for _ in range(request.passengers)]
-        
-        # Build slices for the request
-        slices = [
-            {
-                "origin": request.origin,
-                "destination": request.destination,
-                "departure_date": request.departure_date
-            }
-        ]
-        
-        # Add return slice if return date provided
+
+        # Slices pour l’aller et retour (si applicable)
+        slices = [{
+            "origin": request.origin,
+            "destination": request.destination,
+            "departure_date": request.departure_date
+        }]
+
         if request.return_date:
             slices.append({
                 "origin": request.destination,
@@ -176,7 +173,7 @@ async def search_flights(request: FlightSearchRequest):
                 "departure_date": request.return_date
             })
 
-        # Duffel API payload according to their documentation
+        # Préparation du payload
         payload = {
             "data": {
                 "slices": slices,
@@ -185,15 +182,11 @@ async def search_flights(request: FlightSearchRequest):
             }
         }
 
-        # Verify API key is loaded
         api_key = os.getenv('DUFFEL_ACCESS_TOKEN')
         if not api_key:
             logger.error("DUFFEL_ACCESS_TOKEN not found in environment variables")
-            raise HTTPException(status_code=500, detail="Configuration error. Please try again later.")
-        
-        logger.info(f"Duffel API payload: {payload}")
+            raise HTTPException(status_code=500, detail="Duffel API key missing")
 
-        # Make request to Duffel API
         async with httpx.AsyncClient(timeout=30.0) as client:
             headers = {
                 "Authorization": f"Bearer {api_key}",
@@ -201,18 +194,67 @@ async def search_flights(request: FlightSearchRequest):
                 "Accept": "application/json",
                 "Content-Type": "application/json"
             }
-            
-            logger.info("Making request to Duffel API...")
-            logger.info(f"Authorization header: Bearer {api_key[:20]}...")  # Log partial key for debugging
-            
+
+            # 1. Créer une requête d'offres
             response = await client.post(
                 "https://api.duffel.com/air/offer_requests",
                 headers=headers,
                 json=payload
             )
-            
+
+            if response.status_code not in (200, 201):
+                error_text = await response.text()
+                logger.error(f"Duffel API error {response.status_code}: {error_text}")
+                raise HTTPException(status_code=response.status_code, detail="Error contacting Duffel API.")
+
             response_data = await response.json()
-offer_request_id = response_data["data"]["id"]
+            offer_request_id = response_data["data"]["id"]
+
+            # 2. Récupérer les offres
+            offers_response = await client.get(
+                f"https://api.duffel.com/air/offers?offer_request_id={offer_request_id}",
+                headers=headers
+            )
+
+            if offers_response.status_code != 200:
+                logger.error(f"Erreur récupération des offres : {offers_response.status_code}")
+                raise HTTPException(status_code=500, detail="Erreur lors de la récupération des offres.")
+
+            offers_data = await offers_response.json()
+
+            logger.info(f"Duffel API returned {len(offers_data.get('data', []))} offers")
+
+            # Sauvegarde MongoDB
+            try:
+                search_doc = {
+                    "offer_request_id": offer_request_id,
+                    "origin": request.origin,
+                    "destination": request.destination,
+                    "departure_date": request.departure_date,
+                    "return_date": request.return_date,
+                    "passengers": request.passengers,
+                    "cabin_class": request.cabin_class,
+                    "created_at": datetime.utcnow(),
+                    "offers_count": len(offers_data.get("data", []))
+                }
+                await db.flight_searches.insert_one(search_doc)
+                logger.info("Search stored in database")
+            except Exception as db_error:
+                logger.error(f"Database storage error: {str(db_error)}")
+
+            return offers_data
+
+    except HTTPException:
+        raise
+    except httpx.TimeoutException:
+        logger.error("Duffel API timeout")
+        raise HTTPException(status_code=504, detail="Flight search request timed out. Please try again.")
+    except httpx.ConnectError:
+        logger.error("Duffel API connection error")
+        raise HTTPException(status_code=503, detail="Flight search service unavailable. Please try again later.")
+    except Exception as e:
+        logger.error(f"Unexpected error in flight search: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An unexpected error occurred. Please try again later.")
 
 # Deuxième appel : récupérer les offres
 @api_router.post("/flights/search")
