@@ -1,25 +1,45 @@
+import os
+import logging
+from pathlib import Path
 from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-import os
-import logging
-from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 import uuid
 from datetime import datetime
 import httpx
-from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
+from emergentintegrations.payments.stripe.checkout import (
+    StripeCheckout,
+    CheckoutSessionResponse,
+    CheckoutStatusResponse,
+    CheckoutSessionRequest
+)
 
+# Configure logging at the top!
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('/tmp/backend.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv(str(ROOT_DIR / '.env'))
 
 # MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ.get('MONGO_URL')
+if not mongo_url:
+    raise RuntimeError("MONGO_URL not set in environment")
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db_name = os.environ.get('DB_NAME')
+if not db_name:
+    raise RuntimeError("DB_NAME not set in environment")
+db = client[db_name]
 
 # Initialize Stripe
 stripe_checkout = StripeCheckout(api_key=os.environ.get('STRIPE_SECRET_KEY'))
@@ -30,8 +50,7 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
-
-# Define Models
+# Models
 class StatusCheck(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_name: str
@@ -40,7 +59,6 @@ class StatusCheck(BaseModel):
 class StatusCheckCreate(BaseModel):
     client_name: str
 
-# Duffel API Models
 class FlightSearchRequest(BaseModel):
     origin: str
     destination: str
@@ -54,9 +72,8 @@ class OfferRequest(BaseModel):
     destination: str
     departure_date: str
     return_date: Optional[str] = None
-    passengers: List[Dict] = [{"type": "adult"}]
+    passengers: List[Dict] = Field(default_factory=lambda: [{"type": "adult"}])
 
-# Payment Models
 class PaymentRequest(BaseModel):
     flight_offer_id: str
     amount: float
@@ -64,7 +81,7 @@ class PaymentRequest(BaseModel):
     origin_url: str
     metadata: Dict[str, str] = {}
 
-# Add your routes to the router instead of directly to app
+# Routes
 @api_router.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -81,63 +98,45 @@ async def get_status_checks():
     status_checks = await db.status_checks.find().to_list(1000)
     return [StatusCheck(**status_check) for status_check in status_checks]
 
-# Flight Search Endpoints
+@api_router.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 # Flight Search Endpoints
 @api_router.get("/places/suggestions")
 async def get_place_suggestions(query: str, types: str = "airport"):
-    """Get place suggestions from Duffel API for autocomplete"""
-    
     if not query or len(query) < 2:
         return {"data": []}
-    
-    # Verify API key is loaded
+
     api_key = os.getenv('DUFFEL_ACCESS_TOKEN')
     if not api_key:
         logger.error("DUFFEL_ACCESS_TOKEN not found in environment variables")
         return {"data": []}
-    
+
     logger.info("Places API request for query: " + query)
-    
-    # Parse types parameter (can be comma-separated)
     type_list = [t.strip() for t in types.split(",")]
-    
-    # Build query parameters
-    params = {
-        "query": query,
-    }
-    
-    # Add types as separate parameters
-    for place_type in type_list:
-        if "types[]" in params:
-            # Handle multiple types
-            params["types[" + str(len([k for k in params.keys() if k.startswith('types[')])) + "]"] = place_type
-        else:
-            params["types[]"] = place_type
+    params = {"query": query}
+    for idx, place_type in enumerate(type_list):
+        params[f"types[{idx}]"] = place_type
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         headers = {
             "Authorization": "Bearer " + api_key,
-            "Duffel-Version": "v2", 
+            "Duffel-Version": "v2",
             "Accept": "application/json"
         }
-        
         logger.info("Places API headers: " + str(dict(headers)))
-        
         try:
             response = await client.get(
                 "https://api.duffel.com/places/suggestions",
                 headers=headers,
                 params=params
             )
-            
             logger.info("Places API response status: " + str(response.status_code))
-            
             if response.status_code != 200:
-                logger.error("Duffel Places API error " + str(response.status_code) + ": " + str(response.text))
+                logger.error("Duffel Places API error " + str(response.status_code) + ": " + await response.text())
                 return {"data": []}
-            
-            return response.json()
-            
+            return await response.json()
         except httpx.TimeoutException:
             logger.warning("Places API timeout")
             return {"data": []}
@@ -147,387 +146,25 @@ async def get_place_suggestions(query: str, types: str = "airport"):
 
 @api_router.post("/flights/search")
 async def search_flights(request: FlightSearchRequest):
-    """Search flights using Duffel API"""
-
     try:
         logger.info(f"Flight search request: {request.origin} -> {request.destination} on {request.departure_date}")
-
-        # Validation de base
         if not request.origin or not request.destination or not request.departure_date:
             raise HTTPException(status_code=400, detail="Missing required fields: origin, destination, or departure_date")
-
-        # Passagers
         passengers = [{"type": "adult"} for _ in range(request.passengers)]
-
-        # Slices pour l’aller et retour (si applicable)
         slices = [{
             "origin": request.origin,
             "destination": request.destination,
             "departure_date": request.departure_date
         }]
-
         if request.return_date:
             slices.append({
                 "origin": request.destination,
                 "destination": request.origin,
                 "departure_date": request.return_date
             })
-
-        # Préparation du payload
         payload = {
             "data": {
                 "slices": slices,
                 "passengers": passengers,
-                "cabin_class": request.cabin_class
-            }
-        }
-
-        api_key = os.getenv('DUFFEL_ACCESS_TOKEN')
-        if not api_key:
-            logger.error("DUFFEL_ACCESS_TOKEN not found in environment variables")
-            raise HTTPException(status_code=500, detail="Duffel API key missing")
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Duffel-Version": "v2",
-                "Accept": "application/json",
-                "Content-Type": "application/json"
-            }
-
-            # 1. Créer une requête d'offres
-            response = await client.post(
-                "https://api.duffel.com/air/offer_requests",
-                headers=headers,
-                json=payload
-            )
-
-            if response.status_code not in (200, 201):
-                error_text = await response.text()
-                logger.error(f"Duffel API error {response.status_code}: {error_text}")
-                raise HTTPException(status_code=response.status_code, detail="Error contacting Duffel API.")
-
-            response_data = await response.json()
-            offer_request_id = response_data["data"]["id"]
-
-            # 2. Récupérer les offres
-            offers_response = await client.get(
-                f"https://api.duffel.com/air/offers?offer_request_id={offer_request_id}",
-                headers=headers
-            )
-
-            if offers_response.status_code != 200:
-                logger.error(f"Erreur récupération des offres : {offers_response.status_code}")
-                raise HTTPException(status_code=500, detail="Erreur lors de la récupération des offres.")
-
-            offers_data = await offers_response.json()
-
-            logger.info(f"Duffel API returned {len(offers_data.get('data', []))} offers")
-
-            # Sauvegarde MongoDB
-            try:
-                search_doc = {
-                    "offer_request_id": offer_request_id,
-                    "origin": request.origin,
-                    "destination": request.destination,
-                    "departure_date": request.departure_date,
-                    "return_date": request.return_date,
-                    "passengers": request.passengers,
-                    "cabin_class": request.cabin_class,
-                    "created_at": datetime.utcnow(),
-                    "offers_count": len(offers_data.get("data", []))
-                }
-                await db.flight_searches.insert_one(search_doc)
-                logger.info("Search stored in database")
-            except Exception as db_error:
-                logger.error(f"Database storage error: {str(db_error)}")
-
-            return offers_data
-
-    except HTTPException:
-        raise
-    except httpx.TimeoutException:
-        logger.error("Duffel API timeout")
-        raise HTTPException(status_code=504, detail="Flight search request timed out. Please try again.")
-    except httpx.ConnectError:
-        logger.error("Duffel API connection error")
-        raise HTTPException(status_code=503, detail="Flight search service unavailable. Please try again later.")
-    except Exception as e:
-        logger.error(f"Unexpected error in flight search: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="An unexpected error occurred. Please try again later.")
-
-# Deuxième appel : récupérer les offres
-@api_router.post("/flights/search")
-async def search_flights(request: FlightSearchRequest):
-    """Search flights using Duffel API"""
-    
-    try:
-        logger.info(f"Flight search request: {request.origin} -> {request.destination} on {request.departure_date}")
-        
-        # Validate required fields
-        if not request.origin or not request.destination or not request.departure_date:
-            raise HTTPException(status_code=400, detail="Missing required fields: origin, destination, or departure_date")
-        
-        # Build passengers array based on count
-        passengers = [{"type": "adult"} for _ in range(request.passengers)]
-        
-        # Build slices for the request
-        slices = [
-            {
-                "origin": request.origin,
-                "destination": request.destination,
-                "departure_date": request.departure_date
-            }
-        ]
-        
-        # Add return slice if return date provided
-        if request.return_date:
-            slices.append({
-                "origin": request.destination,
-                "destination": request.origin,
-                "departure_date": request.return_date
-            })
-
-        # Duffel API payload
-        payload = {
-            "data": {
-                "slices": slices,
-                "passengers": passengers,
-                "cabin_class": request.cabin_class
-            }
-        }
-
-        # Verify API key is loaded
-        api_key = os.getenv('DUFFEL_ACCESS_TOKEN')
-        if not api_key:
-            logger.error("DUFFEL_ACCESS_TOKEN not found in environment variables")
-            raise HTTPException(status_code=500, detail="Configuration error. Please try again later.")
-        
-        logger.info(f"Duffel API payload: {payload}")
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Duffel-Version": "v2",
-                "Accept": "application/json",
-                "Content-Type": "application/json"
-            }
-            
-            logger.info("Making request to Duffel API...")
-            logger.info(f"Authorization header: Bearer {api_key[:20]}...")  # Partial key for debug
-            
-            # Premier appel : création d'une demande d'offres
-            response = await client.post(
-                "https://api.duffel.com/air/offer_requests",
-                headers=headers,
-                json=payload
-            )
-            
-            if response.status_code not in (200, 201):
-                error_text = await response.text()
-                logger.error(f"Duffel API error {response.status_code}: {error_text}")
-                if response.status_code == 400:
-                    raise HTTPException(status_code=400, detail="Invalid search parameters. Please check your airport codes and dates.")
-                elif response.status_code == 401:
-                    raise HTTPException(status_code=500, detail="Authentication error. Please try again later.")
-                elif response.status_code == 422:
-                    raise HTTPException(status_code=400, detail="Invalid flight search criteria. Please check your inputs.")
-                else:
-                    raise HTTPException(status_code=500, detail="Flight search service temporarily unavailable. Please try again later.")
-            
-            response_data = await response.json()
-            offer_request_id = response_data["data"]["id"]
-
-            # Deuxième appel : récupérer les offres avec l'ID obtenu
-            offers_response = await client.get(
-                f"https://api.duffel.com/air/offers?offer_request_id={offer_request_id}",
-                headers=headers
-            )
-
-            if offers_response.status_code != 200:
-                logger.error(f"Erreur récupération des offres : {offers_response.status_code}")
-                raise HTTPException(status_code=500, detail="Erreur lors de la récupération des offres.")
-
-            offers_data = await offers_response.json()
-
-            logger.info(f"Duffel API returned {len(offers_data.get('data', []))} offers")
-
-            # Stocker la recherche en MongoDB
-            try:
-                search_doc = {
-                    "offer_request_id": offer_request_id,
-                    "origin": request.origin,
-                    "destination": request.destination,
-                    "departure_date": request.departure_date,
-                    "return_date": request.return_date,
-                    "passengers": request.passengers,
-                    "cabin_class": request.cabin_class,
-                    "created_at": datetime.utcnow(),
-                    "offers_count": len(offers_data.get("data", []))
-                }
-                await db.flight_searches.insert_one(search_doc)
-                logger.info("Search stored in database")
-            except Exception as db_error:
-                logger.error(f"Database storage error: {str(db_error)}")
-
-            return offers_data
-        
-    except HTTPException:
-        raise
-    except httpx.TimeoutException:
-        logger.error("Duffel API timeout")
-        raise HTTPException(status_code=504, detail="Flight search request timed out. Please try again.")
-    except httpx.ConnectError:
-        logger.error("Duffel API connection error")
-        raise HTTPException(status_code=503, detail="Flight search service unavailable. Please try again later.")
-    except Exception as e:
-        logger.error(f"Unexpected error in flight search: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="An unexpected error occurred. Please try again later.")
-            
-    except HTTPException:
-        # Re-raise HTTP exceptions as-is
-        raise
-    except httpx.TimeoutException:
-        logger.error("Duffel API timeout")
-        raise HTTPException(status_code=504, detail="Flight search request timed out. Please try again.")
-    except httpx.ConnectError:
-        logger.error("Duffel API connection error")
-        raise HTTPException(status_code=503, detail="Flight search service unavailable. Please try again later.")
-    except Exception as e:
-        logger.error(f"Unexpected error in flight search: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="An unexpected error occurred. Please try again later.")
-
-@api_router.get("/flights/offers/{offer_id}")
-async def get_offer(offer_id: str):
-    """Get specific offer details from Duffel API"""
-    
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        headers = {
-            "Authorization": f"Bearer {os.getenv('DUFFEL_ACCESS_TOKEN')}",
-            "Duffel-Version": "v2",
-            "Accept": "application/json"
-        }
-        
-        try:
-            response = await client.get(
-                f"https://api.duffel.com/air/offers/{offer_id}",
-                headers=headers
-            )
-            
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=f"Duffel API error: {response.text}"
-                )
-            
-            return response.json()
-            
-        except httpx.TimeoutException:
-            raise HTTPException(status_code=408, detail="Request timeout")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-
-# Payment Endpoints
-@api_router.post("/payments/v1/checkout/session")
-async def create_checkout_session(request: PaymentRequest):
-    """Create Stripe checkout session for flight booking"""
-    
-    try:
-        # Build URLs from provided origin
-        success_url = f"{request.origin_url}/booking-success?session_id={{CHECKOUT_SESSION_ID}}"
-        cancel_url = f"{request.origin_url}/booking-cancelled"
-        
-        # Create checkout session request
-        checkout_request = CheckoutSessionRequest(
-            amount=request.amount,
-            currency=request.currency,
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
-                **request.metadata,
-                "flight_offer_id": request.flight_offer_id,
-                "source": "trotair_flight_booking"
-            }
-        )
-        
-        # Create checkout session
-        session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
-        
-        # Store payment transaction
-        payment_doc = {
-            "session_id": session.session_id,
-            "flight_offer_id": request.flight_offer_id,
-            "amount": request.amount,
-            "currency": request.currency,
-            "metadata": checkout_request.metadata,
-            "payment_status": "pending",
-            "status": "initiated",
-            "created_at": datetime.utcnow()
-        }
-        await db.payment_transactions.insert_one(payment_doc)
-        
-        return {"url": session.url, "session_id": session.session_id}
-        
-    except Exception as e:
-        logger.error(f"Payment session creation error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.get("/payments/v1/checkout/status/{session_id}")
-async def get_checkout_status(session_id: str):
-    """Get checkout session status"""
-    
-    try:
-        # Get status from Stripe
-        checkout_status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
-        
-        # Update payment transaction in database
-        existing_transaction = await db.payment_transactions.find_one({"session_id": session_id})
-        if existing_transaction:
-            await db.payment_transactions.update_one(
-                {"session_id": session_id},
-                {
-                    "$set": {
-                        "status": checkout_status.status,
-                        "payment_status": checkout_status.payment_status,
-                        "updated_at": datetime.utcnow()
-                    }
-                }
-            )
-        
-        return {
-            "status": checkout_status.status,
-            "payment_status": checkout_status.payment_status,
-            "amount_total": checkout_status.amount_total,
-            "currency": checkout_status.currency,
-            "metadata": checkout_status.metadata
-        }
-        
-    except Exception as e:
-        logger.error(f"Payment status check error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Include the router in the main app
-app.include_router(api_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('/tmp/backend.log'),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+                "
+
