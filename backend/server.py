@@ -211,6 +211,21 @@ async def search_flights(request: FlightSearchRequest):
                 json=payload
             )
             
+            response_data = await response.json()
+offer_request_id = response_data["data"]["id"]
+
+# Deuxième appel : récupérer les offres
+offers_response = await client.get(
+    f"https://api.duffel.com/air/offers?offer_request_id={offer_request_id}",
+    headers=headers
+)
+
+if offers_response.status_code != 200:
+    logger.error(f"Erreur récupération des offres : {offers_response.status_code}")
+    raise HTTPException(status_code=500, detail="Erreur lors de la récupération des offres.")
+
+offers_data = await offers_response.json()
+
             logger.info(f"Duffel API response status: {response.status_code}")
             
             if response.status_code != 200 and response.status_code != 201:
@@ -228,8 +243,8 @@ async def search_flights(request: FlightSearchRequest):
                     raise HTTPException(status_code=500, detail="Flight search service temporarily unavailable. Please try again later.")
             
             response_data = response.json()
-            logger.info(f"Duffel API returned {len(response_data.get('data', {}).get('offers', []))} offers")
-            
+            logger.info(f"Duffel API returned {len(offers_data.get('data', []))} offers")
+
             # Store search in MongoDB
             try:
                 search_doc = {
@@ -241,7 +256,7 @@ async def search_flights(request: FlightSearchRequest):
                     "passengers": request.passengers,
                     "cabin_class": request.cabin_class,
                     "created_at": datetime.utcnow(),
-                    "offers_count": len(response_data.get("data", {}).get("offers", []))
+                    "offers_count": len(offers_data.get("data", []))
                 }
                 await db.flight_searches.insert_one(search_doc)
                 logger.info("Search stored in database")
@@ -249,7 +264,7 @@ async def search_flights(request: FlightSearchRequest):
                 logger.error(f"Database storage error: {str(db_error)}")
                 # Continue even if DB storage fails
             
-            return response_data
+            return offers_data
             
     except HTTPException:
         # Re-raise HTTP exceptions as-is
