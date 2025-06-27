@@ -137,81 +137,113 @@ async def get_place_suggestions(query: str, types: str = "airport"):
 async def search_flights(request: FlightSearchRequest):
     """Search flights using Duffel API"""
     
-    # Build passengers array based on count
-    passengers = [{"type": "adult"} for _ in range(request.passengers)]
-    
-    # Build slices for the request
-    slices = [
-        {
-            "origin": request.origin,
-            "destination": request.destination,
-            "departure_date": request.departure_date
-        }
-    ]
-    
-    # Add return slice if return date provided
-    if request.return_date:
-        slices.append({
-            "origin": request.destination,
-            "destination": request.origin,
-            "departure_date": request.return_date
-        })
-
-    # Duffel API payload
-    payload = {
-        "data": {
-            "slices": slices,
-            "passengers": passengers,
-            "cabin_class": request.cabin_class,
-            "return_offers": True
-        }
-    }
-
-    # Make request to Duffel API
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        headers = {
-            "Authorization": f"Bearer {os.getenv('DUFFEL_ACCESS_TOKEN')}",
-            "Duffel-Version": "v2",
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        }
+    try:
+        logger.info(f"Flight search request: {request.origin} -> {request.destination} on {request.departure_date}")
         
-        try:
+        # Validate required fields
+        if not request.origin or not request.destination or not request.departure_date:
+            raise HTTPException(status_code=400, detail="Missing required fields: origin, destination, or departure_date")
+        
+        # Build passengers array based on count
+        passengers = [{"type": "adult"} for _ in range(request.passengers)]
+        
+        # Build slices for the request
+        slices = [
+            {
+                "origin": request.origin,
+                "destination": request.destination,
+                "departure_date": request.departure_date
+            }
+        ]
+        
+        # Add return slice if return date provided
+        if request.return_date:
+            slices.append({
+                "origin": request.destination,
+                "destination": request.origin,
+                "departure_date": request.return_date
+            })
+
+        # Duffel API payload according to their documentation
+        payload = {
+            "data": {
+                "slices": slices,
+                "passengers": passengers,
+                "cabin_class": request.cabin_class
+            }
+        }
+
+        logger.info(f"Duffel API payload: {payload}")
+
+        # Make request to Duffel API
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            headers = {
+                "Authorization": f"Bearer {os.getenv('DUFFEL_ACCESS_TOKEN')}",
+                "Duffel-Version": "v2",
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            }
+            
+            logger.info("Making request to Duffel API...")
+            
             response = await client.post(
                 "https://api.duffel.com/air/offer_requests",
                 headers=headers,
                 json=payload
             )
             
-            if response.status_code != 200:
-                logger.error(f"Duffel API error: {response.text}")
-                raise HTTPException(
-                    status_code=response.status_code, 
-                    detail=f"Flight search failed: {response.text}"
-                )
+            logger.info(f"Duffel API response status: {response.status_code}")
+            
+            if response.status_code != 200 and response.status_code != 201:
+                error_text = response.text
+                logger.error(f"Duffel API error {response.status_code}: {error_text}")
+                
+                # Return user-friendly error instead of raw API response
+                if response.status_code == 400:
+                    raise HTTPException(status_code=400, detail="Invalid search parameters. Please check your airport codes and dates.")
+                elif response.status_code == 401:
+                    raise HTTPException(status_code=500, detail="Authentication error. Please try again later.")
+                elif response.status_code == 422:
+                    raise HTTPException(status_code=400, detail="Invalid flight search criteria. Please check your inputs.")
+                else:
+                    raise HTTPException(status_code=500, detail="Flight search service temporarily unavailable. Please try again later.")
             
             response_data = response.json()
+            logger.info(f"Duffel API returned {len(response_data.get('data', {}).get('offers', []))} offers")
             
             # Store search in MongoDB
-            search_doc = {
-                "offer_request_id": response_data["data"]["id"],
-                "origin": request.origin,
-                "destination": request.destination,
-                "departure_date": request.departure_date,
-                "return_date": request.return_date,
-                "passengers": request.passengers,
-                "cabin_class": request.cabin_class,
-                "created_at": datetime.utcnow()
-            }
-            await db.flight_searches.insert_one(search_doc)
+            try:
+                search_doc = {
+                    "offer_request_id": response_data["data"]["id"],
+                    "origin": request.origin,
+                    "destination": request.destination,
+                    "departure_date": request.departure_date,
+                    "return_date": request.return_date,
+                    "passengers": request.passengers,
+                    "cabin_class": request.cabin_class,
+                    "created_at": datetime.utcnow(),
+                    "offers_count": len(response_data.get("data", {}).get("offers", []))
+                }
+                await db.flight_searches.insert_one(search_doc)
+                logger.info("Search stored in database")
+            except Exception as db_error:
+                logger.error(f"Database storage error: {str(db_error)}")
+                # Continue even if DB storage fails
             
             return response_data
             
-        except httpx.TimeoutException:
-            raise HTTPException(status_code=408, detail="Request timeout")
-        except Exception as e:
-            logger.error(f"Flight search error: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except httpx.TimeoutException:
+        logger.error("Duffel API timeout")
+        raise HTTPException(status_code=504, detail="Flight search request timed out. Please try again.")
+    except httpx.ConnectError:
+        logger.error("Duffel API connection error")
+        raise HTTPException(status_code=503, detail="Flight search service unavailable. Please try again later.")
+    except Exception as e:
+        logger.error(f"Unexpected error in flight search: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An unexpected error occurred. Please try again later.")
 
 @api_router.get("/flights/offers/{offer_id}")
 async def get_offer(offer_id: str):
