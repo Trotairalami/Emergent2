@@ -185,18 +185,25 @@ async def search_flights(request: FlightSearchRequest):
             }
         }
 
+        # Verify API key is loaded
+        api_key = os.getenv('DUFFEL_ACCESS_TOKEN')
+        if not api_key:
+            logger.error("DUFFEL_ACCESS_TOKEN not found in environment variables")
+            raise HTTPException(status_code=500, detail="Configuration error. Please try again later.")
+        
         logger.info(f"Duffel API payload: {payload}")
 
         # Make request to Duffel API
         async with httpx.AsyncClient(timeout=30.0) as client:
             headers = {
-                "Authorization": f"Bearer {os.getenv('DUFFEL_ACCESS_TOKEN')}",
+                "Authorization": f"Bearer {api_key}",
                 "Duffel-Version": "v2",
                 "Accept": "application/json",
                 "Content-Type": "application/json"
             }
             
             logger.info("Making request to Duffel API...")
+            logger.info(f"Authorization header: Bearer {api_key[:20]}...")  # Log partial key for debugging
             
             response = await client.post(
                 "https://api.duffel.com/air/offer_requests",
